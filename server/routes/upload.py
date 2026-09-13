@@ -1,26 +1,20 @@
-# -*- coding: utf-8 -*-
 """
 文件上传 API 路由
 支持简单上传和分块上传（断点续传）
 """
 
-import os
-import time
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
-from typing import Optional
 
-from core.filesystem import (
-    simple_upload,
-    init_chunk_upload,
-    upload_chunk,
-    complete_chunk_upload,
-    cancel_chunk_upload,
-    get_upload_status,
-    _safe_path,
-)
 from core.config import CHUNK_SIZE
+from core.filesystem import (
+    cancel_chunk_upload,
+    complete_chunk_upload,
+    get_upload_status,
+    init_chunk_upload,
+    simple_upload,
+    upload_chunk,
+)
 
 router = APIRouter(prefix="/api/upload", tags=["文件上传"])
 
@@ -71,7 +65,7 @@ async def api_simple_upload(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"上传失败: {e!s}")
 
 
 # =====================================================================
@@ -98,7 +92,7 @@ async def api_init_upload(req: InitUploadRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"初始化失败: {e!s}")
 
 
 @router.put("/chunk/{upload_id}/{chunk_index}")
@@ -122,7 +116,7 @@ async def api_upload_chunk(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"分块上传失败: {e!s}")
 
 
 @router.post("/complete")
@@ -140,7 +134,7 @@ async def api_complete_upload(req: CompleteUploadRequest):
     except OSError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"合并失败: {e!s}")
 
 
 @router.post("/cancel")
