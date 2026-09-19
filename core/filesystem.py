@@ -4,7 +4,6 @@
 提供文件和目录的增删改查、移动、复制、搜索等功能
 """
 
-import os
 import shutil
 import time
 import hashlib
