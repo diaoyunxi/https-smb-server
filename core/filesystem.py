@@ -328,7 +328,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     :param file_name: 文件名
     :param file_size: 文件总大小
     :param total_chunks: 总分块数
-    :param file_hash: 文件完整MD5（可选，用于秒传判断）
+    :param file_hash: 文件完整SHA-256哈希（可选，用于秒传判断）
     :return: 上传会话信息
     """
     file_name = _validate_filename(file_name)
@@ -341,10 +341,10 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
 
     target_file = parent / file_name
 
-    # 秒传判断：如果文件已存在且大小和MD5匹配
+    # 秒传判断：如果文件已存在且大小和哈希匹配
     if target_file.exists() and target_file.is_file():
         if file_hash:
-            existing_hash = _compute_file_md5(target_file)
+            existing_hash = _compute_file_hash(target_file)
             if existing_hash == file_hash and target_file.stat().st_size == file_size:
                 return {
                     "upload_id": "",
@@ -460,17 +460,17 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
                         break
                     f.write(data)
 
-    # 验证MD5
+    # 验证文件哈希
     result = {"file": _file_stat(target_file)}
     if meta.get("file_hash"):
-        actual_hash = _compute_file_md5(target_file)
+        actual_hash = _compute_file_hash(target_file)
         result["hash_match"] = actual_hash == meta["file_hash"]
         result["actual_hash"] = actual_hash
         if not result["hash_match"]:
-            # MD5不匹配，删除文件并报错
+            # 哈希不匹配，删除文件并报错
             target_file.unlink()
             raise ValueError(
-                f"文件校验失败: 期望MD5={meta['file_hash']}, 实际MD5={actual_hash}"
+                f"文件校验失败: 期望哈希={meta['file_hash']}, 实际哈希={actual_hash}"
             )
 
     # 清理临时分块目录
@@ -492,22 +492,22 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return {"upload_id": upload_id, "status": "cancelled"}
 
 
-def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+def _compute_file_hash(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
     """
-    计算文件MD5
+    计算文件SHA-256哈希
 
     :param file_path: 文件路径
     :param chunk_size: 读取块大小
-    :return: MD5十六进制字符串
+    :return: SHA-256十六进制字符串
     """
-    md5 = hashlib.md5()
+    sha = hashlib.sha256()
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
             if not data:
                 break
-            md5.update(data)
-    return md5.hexdigest()
+            sha.update(data)
+    return sha.hexdigest()
 
 
 def get_upload_status(upload_id: str) -> Dict[str, Any]:
