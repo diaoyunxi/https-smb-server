@@ -129,6 +129,12 @@ async def api_download_batch(
             target = _safe_path(p)
             if not target.exists():
                 raise HTTPException(status_code=404, detail=f"文件不存在: {p}")
+            # 阻止符号链接逃逸：symlink 可能指向 BASE_DIR 之外的敏感文件
+            if target.is_symlink():
+                real = target.resolve()
+                from core.config import BASE_DIR
+                if not str(real).startswith(str(BASE_DIR.resolve())):
+                    raise HTTPException(status_code=403, detail=f"符号链接指向不允许的路径: {p}")
             files_to_add.append(target)
 
         # 在内存中创建 ZIP
