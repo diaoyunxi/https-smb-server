@@ -18,3 +18,5 @@ data/
 *.swo
 .DS_Store
 Thumbs.db
+# Ruff linter cache
+.ruff_cache/
