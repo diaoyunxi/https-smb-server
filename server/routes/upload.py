@@ -34,7 +34,7 @@ class InitUploadRequest(BaseModel):
     path: str = Field(default="", description="目标目录相对路径")
     file_name: str = Field(..., min_length=1, max_length=255, description="文件名")
     file_size: int = Field(..., gt=0, description="文件总大小（字节）")
-    file_hash: str = Field(default="", description="文件完整MD5，用于秒传判断")
+    file_hash: str = Field(default="", description="文件完整SHA-256，用于秒传判断")
 
 
 class CompleteUploadRequest(BaseModel):
@@ -84,7 +84,7 @@ async def api_init_upload(req: InitUploadRequest):
     初始化分块上传会话
 
     返回 upload_id，后续用此ID上传各分块。
-    如果文件已存在且MD5匹配，自动秒传。
+    如果文件已存在且SHA-256匹配，自动秒传。
     """
     try:
         total_chunks = (req.file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
