@@ -223,7 +223,7 @@ def move_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
     if new_path.exists() and new_path.resolve() != src.resolve():
         raise FileExistsError(f"目标位置已存在同名文件: {src.name}")
 
-    shutil.move(str(src), str(dest))
+    shutil.move(str(src), str(new_path))
     return _file_stat(new_path)
 
 
