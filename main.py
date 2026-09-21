@@ -23,12 +23,53 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 from pathlib import Path
+import os as _os
 
 from core.config import BASE_DIR, HOST, PORT
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
 from server.routes.download import router as download_router
+
+# =====================================================================
+# 认证中间件 (CWE-306 修复)
+# =====================================================================
+# 通过环境变量 HTTPS_SMB_AUTH_TOKEN 启用 token 认证
+# 设置后, 所有 /api/* 请求须在 Header 中携带 Authorization: Bearer <token>
+# 未设置该环境变量时, 认证关闭(向后兼容)
+_AUTH_TOKEN = _os.environ.get("HTTPS_SMB_AUTH_TOKEN", "").strip()
+
+# 不需要认证的路径前缀(静态资源 / 健康检查 / 文档)
+_AUTH_EXEMPT_PREFIXES = ("/", "/static/", "/docs", "/openapi.json", "/redoc")
+
+
+class TokenAuthMiddleware(BaseHTTPMiddleware):
+    """基于 Bearer Token 的简易认证中间件。"""
+
+    async def dispatch(self, request: Request, call_next):
+        # 未启用认证时直接放行
+        if not _AUTH_TOKEN:
+            return await call_next(request)
+
+        # 非 API 路径不校验(静态页面 / 文档)
+        path = request.url.path
+        if any(path.startswith(p) for p in _AUTH_EXEMPT_PREFIXES) and not path.startswith("/api"):
+            return await call_next(request)
+
+        # API 路径需要 Bearer Token
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            import hmac
+            if hmac.compare_digest(token, _AUTH_TOKEN):
+                return await call_next(request)
+
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "未授权: 请在请求头中提供有效的 Bearer Token"},
+        )
 
 # =====================================================================
 # 创建 FastAPI 应用
@@ -38,6 +79,9 @@ app = FastAPI(
     description="基于 FastAPI 的 HTTPS 文件服务器，提供类 SMB/云盘 的文件管理功能",
     version="1.0.0",
 )
+
+# 注册认证中间件
+app.add_middleware(TokenAuthMiddleware)
 
 # 注册 API 路由
 app.include_router(files_router)
