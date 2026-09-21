@@ -26,5 +26,5 @@ DOWNLOAD_CHUNK_SIZE = int(os.getenv("HTTPS_SMB_DOWNLOAD_CHUNK", str(4 * 1024 * 1
 # 允许的文件名最大长度
 MAX_FILENAME_LENGTH = 255
 
-# 文件上传大小限制（无限制，仅受磁盘空间约束）
-MAX_UPLOAD_SIZE = None
+# 文件上传大小限制（默认 10GB，可通过环境变量调整）
+MAX_UPLOAD_SIZE = int(os.getenv("HTTPS_SMB_MAX_UPLOAD_SIZE", str(10 * 1024 * 1024 * 1024)))  # 10GB
