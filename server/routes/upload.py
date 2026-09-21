@@ -20,7 +20,7 @@ from core.filesystem import (
     get_upload_status,
     _safe_path,
 )
-from core.config import CHUNK_SIZE
+from core.config import CHUNK_SIZE, MAX_UPLOAD_SIZE
 
 router = APIRouter(prefix="/api/upload", tags=["文件上传"])
 
@@ -62,6 +62,14 @@ async def api_simple_upload(
     """
     try:
         content = await file.read()
+        
+        # 检查文件大小限制
+        if MAX_UPLOAD_SIZE and len(content) > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件大小超过限制: 最大允许 {MAX_UPLOAD_SIZE / (1024**3):.1f} GB"
+            )
+        
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
@@ -87,6 +95,13 @@ async def api_init_upload(req: InitUploadRequest):
     如果文件已存在且MD5匹配，自动秒传。
     """
     try:
+        # 检查文件大小限制
+        if MAX_UPLOAD_SIZE and req.file_size > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件大小超过限制: 最大允许 {MAX_UPLOAD_SIZE / (1024**3):.1f} GB"
+            )
+        
         total_chunks = (req.file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
         result = init_chunk_upload(
             req.path, req.file_name, req.file_size,
