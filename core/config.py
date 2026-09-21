@@ -28,3 +28,5 @@ MAX_FILENAME_LENGTH = 255
 
 # 文件上传大小限制（默认 10GB，可通过环境变量调整）
 MAX_UPLOAD_SIZE = int(os.getenv("HTTPS_SMB_MAX_UPLOAD_SIZE", str(10 * 1024 * 1024 * 1024)))  # 10GB
+# API Key 认证（设置后启用，留空则不启用认证）
+API_KEY = os.getenv("HTTPS_SMB_API_KEY", "")
