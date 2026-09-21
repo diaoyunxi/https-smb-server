@@ -342,16 +342,15 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     target_file = parent / file_name
 
     # 秒传判断：如果文件已存在且大小和MD5匹配
-    if target_file.exists() and target_file.is_file():
-        if file_hash:
-            existing_hash = _compute_file_md5(target_file)
-            if existing_hash == file_hash and target_file.stat().st_size == file_size:
-                return {
-                    "upload_id": "",
-                    "status": "instant",
-                    "message": "秒传成功，文件已存在",
-                    "file": _file_stat(target_file),
-                }
+    if target_file.exists() and target_file.is_file() and file_hash:
+        existing_hash = _compute_file_md5(target_file)
+        if existing_hash == file_hash and target_file.stat().st_size == file_size:
+            return {
+                "upload_id": "",
+                "status": "instant",
+                "message": "秒传成功，文件已存在",
+                "file": _file_stat(target_file),
+            }
 
     # 生成上传会话ID
     import uuid
