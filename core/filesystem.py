@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 """
 文件系统操作核心模块
 提供文件和目录的增删改查、移动、复制、搜索等功能
 """
 
-import os
+import hashlib
 import shutil
 import time
-import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZE
+from core.config import BASE_DIR, CHUNK_SIZE, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR
 
 
 def _safe_path(requested_path: str) -> Path:
