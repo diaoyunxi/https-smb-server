@@ -16,7 +16,7 @@ from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZ
 
 def _safe_path(requested_path: str) -> Path:
     """
-    校验并安全化路径，防止目录遍历攻击
+    校验并安全化路径，防止目录遍历攻击和符号链接逃逸
 
     :param requested_path: 用户请求的相对路径
     :return: 安全的绝对路径
@@ -25,13 +25,19 @@ def _safe_path(requested_path: str) -> Path:
     if not requested_path:
         return BASE_DIR
     # 规范化路径
-    clean = Path(requested).as_posix()
+    clean = Path(requested_path).as_posix()
     # 拒绝包含 .. 的路径
     parts = [p for p in clean.split("/") if p and p != ".."]
     safe = BASE_DIR.joinpath(*parts).resolve()
     # 确保不会逃逸出根目录
-    if not str(safe).startswith(str(BASE_DIR.resolve())):
+    base_resolved = BASE_DIR.resolve()
+    if not str(safe).startswith(str(base_resolved)):
         raise ValueError("路径不合法: 不允许访问根目录之外的内容")
+    # 符号链接检查：如果路径是符号链接且指向根目录之外，拒绝访问
+    if safe.is_symlink():
+        link_target = safe.resolve()
+        if not str(link_target).startswith(str(base_resolved)):
+            raise ValueError("路径不合法: 符号链接指向根目录之外")
     return safe
 
 
@@ -328,7 +334,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     :param file_name: 文件名
     :param file_size: 文件总大小
     :param total_chunks: 总分块数
-    :param file_hash: 文件完整MD5（可选，用于秒传判断）
+    :param file_hash: 文件完整SHA-256（可选，用于秒传判断）
     :return: 上传会话信息
     """
     file_name = _validate_filename(file_name)
@@ -341,10 +347,10 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
 
     target_file = parent / file_name
 
-    # 秒传判断：如果文件已存在且大小和MD5匹配
+    # 秒传判断：如果文件已存在且大小和SHA-256匹配
     if target_file.exists() and target_file.is_file():
         if file_hash:
-            existing_hash = _compute_file_md5(target_file)
+            existing_hash = _compute_file_sha256(target_file)
             if existing_hash == file_hash and target_file.stat().st_size == file_size:
                 return {
                     "upload_id": "",
@@ -460,17 +466,17 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
                         break
                     f.write(data)
 
-    # 验证MD5
+    # 验证SHA-256
     result = {"file": _file_stat(target_file)}
     if meta.get("file_hash"):
-        actual_hash = _compute_file_md5(target_file)
+        actual_hash = _compute_file_sha256(target_file)
         result["hash_match"] = actual_hash == meta["file_hash"]
         result["actual_hash"] = actual_hash
         if not result["hash_match"]:
-            # MD5不匹配，删除文件并报错
+            # SHA-256不匹配，删除文件并报错
             target_file.unlink()
             raise ValueError(
-                f"文件校验失败: 期望MD5={meta['file_hash']}, 实际MD5={actual_hash}"
+                f"文件校验失败: 期望SHA-256={meta['file_hash']}, 实际SHA-256={actual_hash}"
             )
 
     # 清理临时分块目录
@@ -492,22 +498,22 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return {"upload_id": upload_id, "status": "cancelled"}
 
 
-def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+def _compute_file_sha256(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
     """
-    计算文件MD5
+    计算文件SHA-256
 
     :param file_path: 文件路径
     :param chunk_size: 读取块大小
-    :return: MD5十六进制字符串
+    :return: SHA-256十六进制字符串
     """
-    md5 = hashlib.md5()
+    sha256 = hashlib.sha256()
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
             if not data:
                 break
-            md5.update(data)
-    return md5.hexdigest()
+            sha256.update(data)
+    return sha256.hexdigest()
 
 
 def get_upload_status(upload_id: str) -> Dict[str, Any]:
