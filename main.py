@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 https-smb-server 主入口
 基于 FastAPI 的 HTTPS 文件服务器，通过 cloudflared 暴露为 HTTPS
@@ -14,21 +13,21 @@ https-smb-server 主入口
     HTTPS_SMB_CHUNK_SIZE - 分块上传大小（默认: 8MB）
 """
 
-import sys
 import os
+import sys
 
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
+from fastapi import FastAPI
+from fastapi.responses import FileResponse, JSONResponse
+
 from core.config import BASE_DIR, HOST, PORT
+from server.routes.download import router as download_router
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
-from server.routes.download import router as download_router
 
 # =====================================================================
 # 创建 FastAPI 应用
