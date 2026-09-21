@@ -492,6 +492,38 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return {"upload_id": upload_id, "status": "cancelled"}
 
 
+# 过期分块上传的最大存活时间（秒），默认 24 小时
+STALE_CHUNK_MAX_AGE = int(os.environ.get("HTTPS_SMB_CHUNK_MAX_AGE", str(24 * 3600)))
+
+
+def cleanup_stale_uploads() -> int:
+    """
+    清理过期的分块上传临时目录。
+
+    客户端中断上传（浏览器崩溃、网络断开等）后，临时分块文件不会被
+    cancel_chunk_upload 清理，长期积累会占用大量磁盘空间。
+
+    遍历 TEMP_CHUNK_DIR 下所有子目录，删除最后修改时间超过
+    STALE_CHUNK_MAX_AGE 秒的目录。
+
+    :return: 清理的目录数量
+    """
+    if not TEMP_CHUNK_DIR.exists():
+        return 0
+    now = time.time()
+    cleaned = 0
+    for entry in TEMP_CHUNK_DIR.iterdir():
+        if entry.is_dir():
+            try:
+                mtime = entry.stat().st_mtime
+                if now - mtime > STALE_CHUNK_MAX_AGE:
+                    shutil.rmtree(entry, ignore_errors=True)
+                    cleaned += 1
+            except OSError:
+                pass
+    return cleaned
+
+
 def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
     """
     计算文件MD5
