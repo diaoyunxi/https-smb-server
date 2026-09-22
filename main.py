@@ -26,6 +26,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
 from core.config import BASE_DIR, HOST, PORT
+from core.config import AUTH_TOKEN, AUTH_ENABLED, AUTH_EXEMPT_PATHS
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
 from server.routes.download import router as download_router
@@ -38,6 +39,52 @@ app = FastAPI(
     description="基于 FastAPI 的 HTTPS 文件服务器，提供类 SMB/云盘 的文件管理功能",
     version="1.0.0",
 )
+
+
+# =====================================================================
+# Bearer Token 认证中间件
+# =====================================================================
+
+if AUTH_ENABLED:
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request as StarletteRequest
+    from starlette.responses import JSONResponse as StarletteJSONResponse
+
+    class BearerTokenAuthMiddleware(BaseHTTPMiddleware):
+        """
+        Bearer Token 认证中间件
+
+        当 HTTPS_SMB_AUTH_TOKEN 环境变量设置后，所有 API 请求
+        （除健康检查和前端页面外）必须携带有效的 Bearer Token。
+
+        客户端请求格式:
+            Authorization: Bearer your-secret-token
+        """
+
+        async def dispatch(self, request: StarletteRequest, call_next):
+            path = request.url.path
+
+            # 豁免路径：健康检查、前端页面、API 文档
+            if any(path == p or path.startswith(p + "/") for p in AUTH_EXEMPT_PATHS):
+                return await call_next(request)
+
+            # 静态资源豁免（前端 JS/CSS/图片等）
+            if path.startswith("/static"):
+                return await call_next(request)
+
+            # 校验 Bearer Token
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+                if token == AUTH_TOKEN:
+                    return await call_next(request)
+
+            return StarletteJSONResponse(
+                status_code=401,
+                content={"success": False, "detail": "未授权: 请提供有效的 Bearer Token"},
+            )
+
+    app.add_middleware(BearerTokenAuthMiddleware)
 
 # 注册 API 路由
 app.include_router(files_router)
@@ -127,6 +174,7 @@ def main():
     print(f"监听地址: {HOST}:{PORT}")
     print(f"访问地址: http://{HOST}:{PORT}")
     print(f"API 文档: http://{HOST}:{PORT}/docs")
+    print(f"认证模式: {'已启用 (Bearer Token)' if AUTH_ENABLED else '未启用 (公开访问)'}")
     print("-" * 50)
 
     uvicorn.run(

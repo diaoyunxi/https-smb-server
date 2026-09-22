@@ -28,3 +28,13 @@ MAX_FILENAME_LENGTH = 255
 
 # 文件上传大小限制（无限制，仅受磁盘空间约束）
 MAX_UPLOAD_SIZE = None
+
+# 认证配置
+# AUTH_TOKEN: Bearer Token，为空时禁用认证（不推荐用于公网环境）
+# 设置方法: export HTTPS_SMB_AUTH_TOKEN="your-secret-token"
+# 客户端请求时携带: Authorization: Bearer your-secret-token
+AUTH_TOKEN = os.getenv("HTTPS_SMB_AUTH_TOKEN", "")
+AUTH_ENABLED = bool(AUTH_TOKEN)
+
+# 不需要认证的路径前缀（健康检查、前端页面、API 文档）
+AUTH_EXEMPT_PATHS = ("/", "/api/health", "/docs", "/openapi.json", "/redoc", "/static")
