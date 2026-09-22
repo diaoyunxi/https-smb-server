@@ -39,6 +39,38 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+# =====================================================================
+# 安全响应头中间件
+# =====================================================================
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    """为所有响应添加标准安全头，防止常见 Web 攻击。"""
+    response = await call_next(request)
+    # 防止 MIME 类型嗅探，阻止浏览器将非 HTML 文件当作 HTML 执行
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # 防止页面被嵌入 iframe，阻止点击劫持 (CWE-1021)
+    response.headers["X-Frame-Options"] = "DENY"
+    # 启用浏览器 XSS 过滤器（兼容旧浏览器）
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    # 强制 HTTPS 传输（即使通过 Cloudflare Tunnel，仍防御中间人降级攻击）
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    # 限制可嵌入的外部资源来源
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "font-src 'self' data:; "
+        "connect-src 'self'"
+    )
+    # 防止 referrer 泄露敏感 URL 路径
+    response.headers["Referrer-Policy"] = "same-origin"
+    # 限制浏览器功能（禁用摄像头/麦克风/地理位置等）
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
 # 注册 API 路由
 app.include_router(files_router)
 app.include_router(upload_router)
