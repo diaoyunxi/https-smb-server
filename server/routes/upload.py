@@ -5,6 +5,7 @@
 """
 
 import os
+from typing import Annotated
 import time
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
 from fastapi.responses import FileResponse, JSONResponse
@@ -54,7 +55,7 @@ class CancelUploadRequest(BaseModel):
 @router.post("/simple")
 async def api_simple_upload(
     path: str = Form(default="", description="目标目录相对路径"),
-    file: UploadFile = File(..., description="上传的文件"),
+    file: Annotated[UploadFile, File(description="上传的文件")] = ...,
     overwrite: bool = Form(default=False, description="是否覆盖已存在文件"),
 ):
     """
@@ -105,7 +106,7 @@ async def api_init_upload(req: InitUploadRequest):
 async def api_upload_chunk(
     upload_id: str,
     chunk_index: int,
-    chunk: UploadFile = File(..., description="分块数据"),
+    chunk: Annotated[UploadFile, File(description="分块数据")] = ...,
 ):
     """
     上传单个分块
