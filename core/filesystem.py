@@ -500,7 +500,7 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     :param chunk_size: 读取块大小
     :return: MD5十六进制字符串
     """
-    md5 = hashlib.md5()
+    md5 = hashlib.sha256()
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
