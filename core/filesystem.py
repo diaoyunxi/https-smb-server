@@ -574,3 +574,50 @@ def simple_upload(dir_path: str, file_name: str, content: bytes,
         f.write(content)
 
     return _file_stat(target)
+
+# =====================================================================
+# 分块上传过期清理
+# =====================================================================
+
+def cleanup_expired_uploads() -> int:
+    """
+    清理过期的未完成分块上传。
+
+    遍历 TEMP_CHUNK_DIR 下所有上传会话，检查 .meta.json 中的 created_at，
+    超过 CHUNK_UPLOAD_EXPIRY_SECONDS 的会话将被删除。
+
+    :return: 清理的过期上传数量
+    """
+    import json
+    from core.config import CHUNK_UPLOAD_EXPIRY_SECONDS
+
+    if not TEMP_CHUNK_DIR.exists():
+        return 0
+
+    now = time.time()
+    cleaned = 0
+
+    for session_dir in TEMP_CHUNK_DIR.iterdir():
+        if not session_dir.is_dir():
+            continue
+
+        meta_path = session_dir / ".meta.json"
+        if not meta_path.exists():
+            # 无 meta 文件的孤儿目录，直接清理
+            shutil.rmtree(session_dir, ignore_errors=True)
+            cleaned += 1
+            continue
+
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+            created_at = meta.get("created_at", 0)
+            if now - created_at > CHUNK_UPLOAD_EXPIRY_SECONDS:
+                shutil.rmtree(session_dir, ignore_errors=True)
+                cleaned += 1
+        except (json.JSONDecodeError, OSError):
+            # meta 文件损坏或读取失败，清理该目录
+            shutil.rmtree(session_dir, ignore_errors=True)
+            cleaned += 1
+
+    return cleaned

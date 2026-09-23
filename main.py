@@ -111,6 +111,19 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # =====================================================================
+# 启动事件：清理过期的分块上传
+# =====================================================================
+
+@app.on_event("startup")
+async def startup_cleanup_expired_uploads():
+    """启动时清理过期的未完成分块上传，防止磁盘空间被遗弃的上传会话占满"""
+    from core.filesystem import cleanup_expired_uploads
+    cleaned = cleanup_expired_uploads()
+    if cleaned > 0:
+        print(f"已清理 {cleaned} 个过期的分块上传会话")
+
+
+# =====================================================================
 # 启动
 # =====================================================================
 
