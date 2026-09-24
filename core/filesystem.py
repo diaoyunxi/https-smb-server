@@ -344,7 +344,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     # 秒传判断：如果文件已存在且大小和MD5匹配
     if target_file.exists() and target_file.is_file():
         if file_hash:
-            existing_hash = _compute_file_md5(target_file)
+            existing_hash = _compute_file_hash(target_file)
             if existing_hash == file_hash and target_file.stat().st_size == file_size:
                 return {
                     "upload_id": "",
@@ -463,7 +463,7 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
     # 验证MD5
     result = {"file": _file_stat(target_file)}
     if meta.get("file_hash"):
-        actual_hash = _compute_file_md5(target_file)
+        actual_hash = _compute_file_hash(target_file)
         result["hash_match"] = actual_hash == meta["file_hash"]
         result["actual_hash"] = actual_hash
         if not result["hash_match"]:
@@ -492,7 +492,7 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return {"upload_id": upload_id, "status": "cancelled"}
 
 
-def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
+def _compute_file_hash(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
     """
     计算文件MD5
 
@@ -500,14 +500,14 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     :param chunk_size: 读取块大小
     :return: MD5十六进制字符串
     """
-    md5 = hashlib.md5()
+    hasher = hashlib.sha256()
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
             if not data:
                 break
-            md5.update(data)
-    return md5.hexdigest()
+            hasher.update(data)
+    return hasher.hexdigest()
 
 
 def get_upload_status(upload_id: str) -> Dict[str, Any]:
