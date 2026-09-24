@@ -254,13 +254,15 @@ def copy_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
     return _file_stat(new_path)
 
 
-def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
+def search_files(query: str, dir_path: str = "",
+                 max_results: int = 200) -> List[Dict[str, Any]]:
     """
     搜索文件和目录
 
     :param query: 搜索关键词
     :param dir_path: 搜索起始目录
-    :return: 匹配的文件信息列表
+    :param max_results: 最大返回结果数量，防止大目录搜索导致内存耗尽
+    :return: 匹配的文件信息列表（最多 max_results 条）
     """
     target = _safe_path(dir_path)
     if not target.exists():
@@ -270,13 +272,19 @@ def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
 
     query_lower = query.lower()
     results = []
+    # 使用列表包装的布尔标志，以便在嵌套函数中修改
+    _limit_reached = [False]
 
     def _walk(directory: Path, depth: int = 0):
         """递归搜索目录"""
         if depth > 20:  # 限制递归深度，防止无限循环
             return
+        if _limit_reached[0]:
+            return
         try:
             for entry in directory.iterdir():
+                if _limit_reached[0]:
+                    return
                 # 跳过隐藏文件和临时目录
                 if entry.name.startswith("."):
                     continue
@@ -284,6 +292,9 @@ def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
                     continue
                 if query_lower in entry.name.lower():
                     results.append(_file_stat(entry))
+                    if len(results) >= max_results:
+                        _limit_reached[0] = True
+                        return
                 if entry.is_dir():
                     _walk(entry, depth + 1)
         except PermissionError:
