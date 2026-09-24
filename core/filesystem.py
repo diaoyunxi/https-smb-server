@@ -287,7 +287,7 @@ def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
                 if entry.is_dir():
                     _walk(entry, depth + 1)
         except PermissionError:
-            pass
+            pass  # TODO: add proper error handling
 
     _walk(target)
     return results
