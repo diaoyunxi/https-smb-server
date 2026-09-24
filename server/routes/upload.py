@@ -34,7 +34,7 @@ class InitUploadRequest(BaseModel):
     path: str = Field(default="", description="目标目录相对路径")
     file_name: str = Field(..., min_length=1, max_length=255, description="文件名")
     file_size: int = Field(..., gt=0, description="文件总大小（字节）")
-    file_hash: str = Field(default="", description="文件完整MD5，用于秒传判断")
+    file_hash: str = Field(default="", description="文件完整SHA-256，用于秒传判断")
 
 
 class CompleteUploadRequest(BaseModel):
