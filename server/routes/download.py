@@ -58,13 +58,30 @@ async def api_download_file(
         # 处理 Range 请求
         range_header = request.headers.get("range") if request else None
         if range_header:
-            # 解析 Range: bytes=start-end
-            range_spec = range_header.replace("bytes=", "")
-            parts = range_spec.split("-")
-            start = int(parts[0]) if parts[0] else 0
-            end = int(parts[1]) if parts[1] else file_size - 1
+            try:
+                # 解析 Range: bytes=start-end
+                range_spec = range_header.replace("bytes=", "")
+                parts = range_spec.split("-")
 
-            if start >= file_size or end >= file_size or start > end:
+                if not parts[0] and parts[1]:
+                    # 后缀范围请求: bytes=-500 (最后 500 字节)
+                    suffix_length = int(parts[1])
+                    start = max(0, file_size - suffix_length)
+                    end = file_size - 1
+                else:
+                    start = int(parts[0]) if parts[0] else 0
+                    end = int(parts[1]) if parts[1] else file_size - 1
+
+                # 范围边界校正
+                end = min(end, file_size - 1)
+            except (ValueError, IndexError):
+                raise HTTPException(
+                    status_code=416,
+                    detail="Range 请求格式无效",
+                    headers={"Content-Range": f"bytes */{file_size}"},
+                )
+
+            if start >= file_size or start > end:
                 raise HTTPException(
                     status_code=416,
                     detail="请求范围无效",
