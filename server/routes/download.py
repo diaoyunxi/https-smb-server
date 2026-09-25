@@ -131,33 +131,77 @@ async def api_download_batch(
                 raise HTTPException(status_code=404, detail=f"文件不存在: {p}")
             files_to_add.append(target)
 
-        # 在内存中创建 ZIP
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for file_path in files_to_add:
-                if file_path.is_file():
-                    zf.write(file_path, file_path.name)
-                elif file_path.is_dir():
-                    for root, dirs, files in os.walk(file_path):
-                        for file in files:
-                            if file.startswith("."):
-                                continue
-                            full_path = Path(root) / file
-                            arc_name = full_path.relative_to(file_path.parent)
-                            zf.write(full_path, arc_name)
+        # 收集所有要打包的文件（展开目录）并计算总大小
+        import tempfile
+        all_files: list[tuple[Path, str]] = []  # (file_path, arc_name)
+        total_size = 0
+        MAX_BATCH_FILES = 200
+        MAX_BATCH_SIZE = 500 * 1024 * 1024  # 500 MB
 
-        zip_buffer.seek(0)
+        for file_path in files_to_add:
+            if file_path.is_file():
+                fsize = file_path.stat().st_size
+                total_size += fsize
+                all_files.append((file_path, file_path.name))
+            elif file_path.is_dir():
+                for root, dirs, files in os.walk(file_path):
+                    for file in files:
+                        if file.startswith("."):
+                            continue
+                        full_path = Path(root) / file
+                        arc_name = str(full_path.relative_to(file_path.parent))
+                        fsize = full_path.stat().st_size
+                        total_size += fsize
+                        all_files.append((full_path, arc_name))
+
+        if len(all_files) > MAX_BATCH_FILES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"批量下载文件数超限: {len(all_files)} > {MAX_BATCH_FILES}，请减少文件数量",
+            )
+        if total_size > MAX_BATCH_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"批量下载总大小超限: {total_size / 1024 / 1024:.1f} MB > 500 MB，请减少文件数量",
+            )
+
+        # 使用临时文件而非内存 BytesIO，避免大目录导致 OOM
         import time
-        zip_name = f"batch_download_{int(time.time())}.zip"
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".zip", prefix="batch_dl_")
+        try:
+            with os.fdopen(tmp_fd, "wb") as tmp_f:
+                with zipfile.ZipFile(tmp_f, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for fpath, arc in all_files:
+                        zf.write(fpath, arc)
 
-        return StreamingResponse(
-            zip_buffer,
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f"attachment; filename*=UTF-8''{zip_name}",
-                "Content-Length": str(zip_buffer.getbuffer().nbytes),
-            },
-        )
+            zip_name = f"batch_download_{int(time.time())}.zip"
+            file_size = os.path.getsize(tmp_path)
+
+            def _stream_tmp():
+                with open(tmp_path, "rb") as f:
+                    while chunk := f.read(DOWNLOAD_CHUNK_SIZE):
+                        yield chunk
+                # 流式发送完毕后清理临时文件
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+            return StreamingResponse(
+                _stream_tmp(),
+                media_type="application/zip",
+                headers={
+                    "Content-Disposition": f"attachment; filename*=UTF-8''{zip_name}",
+                    "Content-Length": str(file_size),
+                },
+            )
+        except Exception:
+            # 异常时确保临时文件被清理
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     except HTTPException:
         raise
