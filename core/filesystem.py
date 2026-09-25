@@ -50,7 +50,10 @@ def _validate_filename(name: str) -> str:
     if len(name) > MAX_FILENAME_LENGTH:
         raise ValueError(f"文件名过长，最大允许 {MAX_FILENAME_LENGTH} 个字符")
     # 禁止非法字符（Windows和Linux兼容）
-    illegal = '<>:"|?*\x00'
+    # 安全修复：添加 / 和 \ 防止文件名路径穿越（CWE-22）
+    # 原列表仅含 Windows 非法字符，遗漏 Unix 路径分隔符 /，
+    # 导致 simple_upload 等接口可通过含 / 的文件名写入任意子目录
+    illegal = '/\\<>:"|?*\x00'
     for ch in illegal:
         if ch in name:
             raise ValueError(f"文件名包含非法字符: '{ch}'")
