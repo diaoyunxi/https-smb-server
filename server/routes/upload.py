@@ -4,13 +4,8 @@
 支持简单上传和分块上传（断点续传）
 """
 
-import os
-import time
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
-from typing import Optional
-
 from core.filesystem import (
     simple_upload,
     init_chunk_upload,
@@ -18,13 +13,10 @@ from core.filesystem import (
     complete_chunk_upload,
     cancel_chunk_upload,
     get_upload_status,
-    _safe_path,
 )
 from core.config import CHUNK_SIZE
 
 router = APIRouter(prefix="/api/upload", tags=["文件上传"])
-
-
 # =====================================================================
 # 请求模型
 # =====================================================================
@@ -35,18 +27,12 @@ class InitUploadRequest(BaseModel):
     file_name: str = Field(..., min_length=1, max_length=255, description="文件名")
     file_size: int = Field(..., gt=0, description="文件总大小（字节）")
     file_hash: str = Field(default="", description="文件完整MD5，用于秒传判断")
-
-
 class CompleteUploadRequest(BaseModel):
     """完成分块上传请求"""
     upload_id: str = Field(..., description="上传会话ID")
-
-
 class CancelUploadRequest(BaseModel):
     """取消分块上传请求"""
     upload_id: str = Field(..., description="上传会话ID")
-
-
 # =====================================================================
 # 简单上传（小文件，非分块）
 # =====================================================================
@@ -72,8 +58,6 @@ async def api_simple_upload(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
-
-
 # =====================================================================
 # 分块上传（大文件，支持断点续传）
 # =====================================================================
@@ -99,8 +83,6 @@ async def api_init_upload(req: InitUploadRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
-
-
 @router.put("/chunk/{upload_id}/{chunk_index}")
 async def api_upload_chunk(
     upload_id: str,
@@ -123,8 +105,6 @@ async def api_upload_chunk(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}")
-
-
 @router.post("/complete")
 async def api_complete_upload(req: CompleteUploadRequest):
     """
@@ -141,8 +121,6 @@ async def api_complete_upload(req: CompleteUploadRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}")
-
-
 @router.post("/cancel")
 async def api_cancel_upload(req: CancelUploadRequest):
     """
@@ -150,8 +128,6 @@ async def api_cancel_upload(req: CancelUploadRequest):
     """
     result = cancel_chunk_upload(req.upload_id)
     return {"success": True, "data": result}
-
-
 @router.get("/status/{upload_id}")
 async def api_upload_status(upload_id: str):
     """
