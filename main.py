@@ -95,8 +95,8 @@ async def health_check():
 # 错误处理
 # =====================================================================
 
-from fastapi import Request
-from fastapi.responses import JSONResponse as _JSONResponse
+from fastapi import Request  # noqa: E402
+from fastapi.responses import JSONResponse as _JSONResponse  # noqa: E402
 
 
 @app.exception_handler(Exception)

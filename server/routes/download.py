@@ -105,9 +105,9 @@ async def api_download_file(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}") from e
 
 
 @router.get("/batch")
@@ -138,7 +138,7 @@ async def api_download_batch(
                 if file_path.is_file():
                     zf.write(file_path, file_path.name)
                 elif file_path.is_dir():
-                    for root, dirs, files in os.walk(file_path):
+                    for root, _dirs, files in os.walk(file_path):
                         for file in files:
                             if file.startswith("."):
                                 continue
@@ -162,6 +162,6 @@ async def api_download_batch(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}") from e
