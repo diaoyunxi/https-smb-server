@@ -20,9 +20,13 @@ from core.filesystem import (
     get_upload_status,
     _safe_path,
 )
-from core.config import CHUNK_SIZE
+from core.config import CHUNK_SIZE, MAX_UPLOAD_SIZE
 
 router = APIRouter(prefix="/api/upload", tags=["文件上传"])
+
+# 简单上传最大允许 500MB（可通过 MAX_UPLOAD_SIZE 环境变量配置）
+_DEFAULT_SIMPLE_UPLOAD_LIMIT = 500 * 1024 * 1024  # 500MB
+_SIMPLE_UPLOAD_LIMIT = MAX_UPLOAD_SIZE or _DEFAULT_SIMPLE_UPLOAD_LIMIT
 
 
 # =====================================================================
@@ -61,7 +65,19 @@ async def api_simple_upload(
     简单文件上传（适合小文件，单次请求完成）
     """
     try:
+        # 检查 Content-Length 防止超大文件导致内存耗尽 (CWE-770)
+        content_length = file.size or 0
+        if content_length > _SIMPLE_UPLOAD_LIMIT:
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件大小 ({content_length} 字节) 超过限制 ({_SIMPLE_UPLOAD_LIMIT} 字节)，请使用分块上传"
+            )
         content = await file.read()
+        if len(content) > _SIMPLE_UPLOAD_LIMIT:
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件大小 ({len(content)} 字节) 超过限制 ({_SIMPLE_UPLOAD_LIMIT} 字节)，请使用分块上传"
+            )
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
