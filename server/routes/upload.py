@@ -66,12 +66,12 @@ async def api_simple_upload(
     """
     try:
         # 校验文件大小
-    content = await file.read()
-    if len(content) > MAX_UPLOAD_SIZE:
-        raise HTTPException(
-            status_code=413,
-            detail=f"文件大小超过限制 ({MAX_UPLOAD_SIZE // (1024*1024)}MB)"
-        )
+        content = await file.read()
+        if len(content) > MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件大小超过限制 ({MAX_UPLOAD_SIZE // (1024*1024)}MB)"
+            )
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
