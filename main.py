@@ -119,6 +119,7 @@ def main():
     启动 HTTP 服务器（配合 cloudflared 自动转为 HTTPS）
     """
     import uvicorn
+import signal
 
     # 确保数据目录存在
     BASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -137,6 +138,16 @@ def main():
         reload=False,
     )
 
+
+
+def _graceful_shutdown(signum, frame):
+    """优雅关闭：处理 SIGTERM/SIGINT 信号"""
+    print("\n[Server] Received shutdown signal, closing gracefully...")
+    import sys
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, _graceful_shutdown)
+signal.signal(signal.SIGINT, _graceful_shutdown)
 
 if __name__ == "__main__":
     main()
