@@ -25,7 +25,7 @@ def _safe_path(requested_path: str) -> Path:
     if not requested_path:
         return BASE_DIR
     # 规范化路径
-    clean = Path(requested).as_posix()
+    clean = Path(requested_path).as_posix()
     # 拒绝包含 .. 的路径
     parts = [p for p in clean.split("/") if p and p != ".."]
     safe = BASE_DIR.joinpath(*parts).resolve()
@@ -500,7 +500,7 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     :param chunk_size: 读取块大小
     :return: MD5十六进制字符串
     """
-    md5 = hashlib.md5()
+    md5 = hashlib.md5(usedforsecurity=False)
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
