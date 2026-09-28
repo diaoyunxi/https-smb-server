@@ -17,11 +17,30 @@ https-smb-server 主入口
 import sys
 import os
 
+# === Rate Limiting ===
+import time as _time
+from collections import defaultdict
+
+MAX_REQUESTS_PER_MINUTE = 60  # 每分钟最大请求数
+_request_counts: dict[str, list[float]] = defaultdict(list)
+
+def _check_rate_limit(client_ip: str) -> bool:
+    """检查客户端是否超过速率限制"""
+    now = _time.time()
+    # 清理过期的请求记录
+    _request_counts[client_ip] = [
+        t for t in _request_counts[client_ip] if now - t < 60
+    ]
+    if len(_request_counts[client_ip]) >= MAX_REQUESTS_PER_MINUTE:
+        return False  # 超过限制
+    _request_counts[client_ip].append(now)
+    return True  # 未超过限制
+
+
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
