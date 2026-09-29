@@ -8,6 +8,8 @@ import os
 import io
 import zipfile
 from pathlib import Path
+import logging
+
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from typing import Optional, List
@@ -16,6 +18,7 @@ from core.filesystem import _safe_path, _file_stat
 from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
 
 router = APIRouter(prefix="/api/download", tags=["文件下载"])
+_logger = logging.getLogger(__name__)
 
 
 def _get_download_headers(file_path: Path, file_name: str) -> dict:
@@ -104,10 +107,11 @@ async def api_download_file(
 
     except HTTPException:
         raise
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请求参数无效")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
+        _logger.exception("下载失败")
+        raise HTTPException(status_code=500, detail="下载失败，请稍后重试")
 
 
 @router.get("/batch")
@@ -161,7 +165,8 @@ async def api_download_batch(
 
     except HTTPException:
         raise
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="请求参数无效")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
+        _logger.exception("打包下载失败")
+        raise HTTPException(status_code=500, detail="打包下载失败，请稍后重试")
