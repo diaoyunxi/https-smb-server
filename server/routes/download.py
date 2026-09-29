@@ -131,33 +131,79 @@ async def api_download_batch(
                 raise HTTPException(status_code=404, detail=f"文件不存在: {p}")
             files_to_add.append(target)
 
-        # 在内存中创建 ZIP
-        zip_buffer = io.BytesIO()
-        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for file_path in files_to_add:
-                if file_path.is_file():
-                    zf.write(file_path, file_path.name)
-                elif file_path.is_dir():
-                    for root, dirs, files in os.walk(file_path):
-                        for file in files:
-                            if file.startswith("."):
-                                continue
-                            full_path = Path(root) / file
-                            arc_name = full_path.relative_to(file_path.parent)
-                            zf.write(full_path, arc_name)
+        # 安全限制：批量下载文件数上限
+        MAX_BATCH_FILES = 50
+        if len(files_to_add) > MAX_BATCH_FILES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"批量下载文件数超过上限 ({MAX_BATCH_FILES})，请减少文件数量",
+            )
 
-        zip_buffer.seek(0)
-        import time
-        zip_name = f"batch_download_{int(time.time())}.zip"
-
-        return StreamingResponse(
-            zip_buffer,
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f"attachment; filename*=UTF-8''{zip_name}",
-                "Content-Length": str(zip_buffer.getbuffer().nbytes),
-            },
+        # 安全限制：计算总文件大小上限（默认 2GB）
+        MAX_BATCH_SIZE = 2 * 1024 * 1024 * 1024
+        total_size = sum(
+            f.stat().st_size if f.is_file()
+            else sum(ff.stat().st_size for ff in f.rglob("*") if ff.is_file())
+            for f in files_to_add
         )
+        if total_size > MAX_BATCH_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"批量下载总大小 ({total_size / 1024 / 1024:.0f}MB) 超过上限 ({MAX_BATCH_SIZE / 1024 / 1024:.0f}MB)",
+            )
+
+        # 使用临时文件而非内存缓冲区，防止大文件批量下载导致 OOM
+        import tempfile
+        import time
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix=".zip", prefix="batch_dl_")
+        try:
+            with os.fdopen(tmp_fd, "wb") as tmp_f:
+                with zipfile.ZipFile(tmp_f, "w", zipfile.ZIP_DEFLATED) as zf:
+                    for file_path in files_to_add:
+                        if file_path.is_file():
+                            zf.write(file_path, file_path.name)
+                        elif file_path.is_dir():
+                            for root, dirs, files in os.walk(file_path):
+                                for file in files:
+                                    if file.startswith("."):
+                                        continue
+                                    full_path = Path(root) / file
+                                    arc_name = full_path.relative_to(file_path.parent)
+                                    zf.write(full_path, arc_name)
+
+            zip_name = f"batch_download_{int(time.time())}.zip"
+            file_size = os.path.getsize(tmp_path)
+
+            def _stream_tmp_file(path: str):
+                """流式读取临时文件并自动清理"""
+                try:
+                    with open(path, "rb") as f:
+                        while True:
+                            chunk = f.read(8 * 1024 * 1024)
+                            if not chunk:
+                                break
+                            yield chunk
+                finally:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
+
+            return StreamingResponse(
+                _stream_tmp_file(tmp_path),
+                media_type="application/zip",
+                headers={
+                    "Content-Disposition": f"attachment; filename*=UTF-8''{zip_name}",
+                    "Content-Length": str(file_size),
+                },
+            )
+        except Exception:
+            # 发生异常时清理临时文件
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     except HTTPException:
         raise
