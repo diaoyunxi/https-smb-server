@@ -97,13 +97,22 @@ async def health_check():
 
 from fastapi import Request
 from fastapi.responses import JSONResponse as _JSONResponse
+import logging
+
+_logger = logging.getLogger("https-smb-server")
 
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
-    全局异常处理器，防止堆栈信息泄露
+    全局异常处理器：服务端记录完整异常信息，客户端仅返回通用错误消息，
+    防止堆栈跟踪、内部路径等敏感信息泄露（CWE-209）。
+
+    原实现未记录异常详情，导致生产环境无法排查 500 错误的根因。
     """
+    _logger.exception(
+        "未处理异常 [%s %s]: %s", request.method, request.url.path, exc
+    )
     return _JSONResponse(
         status_code=500,
         content={"success": False, "detail": "服务器内部错误"},
