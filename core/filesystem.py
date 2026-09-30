@@ -16,22 +16,29 @@ from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZ
 
 def _safe_path(requested_path: str) -> Path:
     """
-    校验并安全化路径，防止目录遍历攻击
+    校验并安全化路径，防止目录遍历攻击和符号链接逃逸。
 
     :param requested_path: 用户请求的相对路径
     :return: 安全的绝对路径
-    :raises ValueError: 路径不合法时抛出
+    :raises ValueError: 路径不合法或包含符号链接时抛出
     """
     if not requested_path:
         return BASE_DIR
     # 规范化路径
-    clean = Path(requested).as_posix()
+    clean = Path(requested_path).as_posix()
     # 拒绝包含 .. 的路径
     parts = [p for p in clean.split("/") if p and p != ".."]
     safe = BASE_DIR.joinpath(*parts).resolve()
+    resolved_base = BASE_DIR.resolve()
     # 确保不会逃逸出根目录
-    if not str(safe).startswith(str(BASE_DIR.resolve())):
+    if not str(safe).startswith(str(resolved_base)):
         raise ValueError("路径不合法: 不允许访问根目录之外的内容")
+    # 防御符号链接攻击：检查路径链中每个组件是否为符号链接
+    check = resolved_base
+    for part in parts:
+        check = check / part
+        if check.is_symlink():
+            raise ValueError(f"路径不合法: 检测到符号链接 '{part}'")
     return safe
 
 
