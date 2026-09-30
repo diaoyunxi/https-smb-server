@@ -1,20 +1,32 @@
-# -*- coding: utf-8 -*-
-# .gitignore
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
 *.egg-info/
 dist/
 build/
-.eggs/
-*.egg
-data/
-.chunks/
-.env
-*.log
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+
+# OS
 .DS_Store
 Thumbs.db
+
+# Testing
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
