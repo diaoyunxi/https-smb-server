@@ -403,6 +403,10 @@ def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> Dict[st
     if chunk_index < 0 or chunk_index >= meta["total_chunks"]:
         raise ValueError(f"分块索引无效: {chunk_index}（有效范围: 0-{meta['total_chunks'] - 1}）")
 
+    # 校验分块大小，防止磁盘耗尽攻击 (CWE-400)
+    if len(chunk_data) > CHUNK_SIZE:
+        raise ValueError(f"分块大小超过限制: {len(chunk_data)} > {CHUNK_SIZE} 字节")
+
     # 写入分块文件
     chunk_path = chunk_dir / f"chunk_{chunk_index:06d}"
     with open(chunk_path, "wb") as f:
