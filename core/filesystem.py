@@ -500,7 +500,10 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     :param chunk_size: 读取块大小
     :return: MD5十六进制字符串
     """
-    md5 = hashlib.md5()
+    # 此处仅用于文件内容去重/上传完整性校验（秒传判断），并非安全用途
+    #（不用于口令、签名或防篡改）。显式声明 usedforsecurity=False，
+    # 以通过 Bandit B324 检查，同时不影响哈希结果。
+    md5 = hashlib.md5(usedforsecurity=False)
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
