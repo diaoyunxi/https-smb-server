@@ -22,6 +22,10 @@ from core.filesystem import (
 )
 from core.config import CHUNK_SIZE
 
+# 简单上传文件大小上限（默认 100 MB），防止单次请求耗尽内存/磁盘
+# 可通过环境变量 SIMPLE_UPLOAD_MAX_BYTES 覆盖
+MAX_SIMPLE_UPLOAD_BYTES = int(os.environ.get("SIMPLE_UPLOAD_MAX_BYTES", str(100 * 1024 * 1024)))
+
 router = APIRouter(prefix="/api/upload", tags=["文件上传"])
 
 
@@ -59,9 +63,32 @@ async def api_simple_upload(
 ):
     """
     简单文件上传（适合小文件，单次请求完成）
+
+    文件大小上限由 MAX_SIMPLE_UPLOAD_BYTES 控制（默认 100 MB），
+    超出上限的请求将被拒绝，防止单次大文件上传耗尽服务器内存或磁盘。
     """
     try:
+        # 校验 Content-Length 头（如客户端提供）
+        content_length = file.size  # UploadFile.size 对应 Content-Length
+        if content_length is not None and content_length > MAX_SIMPLE_UPLOAD_BYTES:
+            max_mb = MAX_SIMPLE_UPLOAD_BYTES / (1024 * 1024)
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件过大（{content_length} 字节），简单上传上限为 {max_mb:.0f} MB。"
+                       f"请使用分块上传接口上传大文件。",
+            )
+
         content = await file.read()
+
+        # 二次校验实际读取的字节数（防止客户端伪造 Content-Length）
+        if len(content) > MAX_SIMPLE_UPLOAD_BYTES:
+            max_mb = MAX_SIMPLE_UPLOAD_BYTES / (1024 * 1024)
+            raise HTTPException(
+                status_code=413,
+                detail=f"文件实际大小（{len(content)} 字节）超出简单上传上限 {max_mb:.0f} MB。"
+                       f"请使用分块上传接口上传大文件。",
+            )
+
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
