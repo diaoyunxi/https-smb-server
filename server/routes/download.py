@@ -4,6 +4,7 @@
 支持完整下载、分块下载（Range 请求）、批量下载（ZIP 打包）
 """
 
+import logging
 import os
 import io
 import zipfile
@@ -11,6 +12,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from typing import Optional, List
+
+logger = logging.getLogger(__name__)
 
 from core.filesystem import _safe_path, _file_stat
 from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
@@ -107,7 +110,8 @@ async def api_download_file(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
+        logger.error("下载失败: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="下载失败，请稍后重试")
 
 
 @router.get("/batch")
@@ -164,4 +168,5 @@ async def api_download_batch(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
+        logger.error("打包下载失败: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="打包下载失败，请稍后重试")
