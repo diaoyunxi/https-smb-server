@@ -150,8 +150,19 @@ async def api_download_batch(
         import time
         zip_name = f"batch_download_{int(time.time())}.zip"
 
+        def _stream_zip():
+            """流式输出 ZIP 数据并在完成后释放缓冲区"""
+            try:
+                while True:
+                    chunk = zip_buffer.read(65536)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                zip_buffer.close()
+
         return StreamingResponse(
-            zip_buffer,
+            _stream_zip(),
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename*=UTF-8''{zip_name}",
