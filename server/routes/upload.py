@@ -70,8 +70,8 @@ async def api_simple_upload(
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="上传失败，请稍后重试")
 
 
 # =====================================================================
@@ -97,8 +97,8 @@ async def api_init_upload(req: InitUploadRequest):
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="初始化失败，请稍后重试")
 
 
 @router.put("/chunk/{upload_id}/{chunk_index}")
@@ -121,8 +121,8 @@ async def api_upload_chunk(
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="分块上传失败，请稍后重试")
 
 
 @router.post("/complete")
@@ -139,8 +139,8 @@ async def api_complete_upload(req: CompleteUploadRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except OSError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="合并失败，请稍后重试")
 
 
 @router.post("/cancel")
@@ -162,5 +162,5 @@ async def api_upload_status(upload_id: str):
         return {"success": True, "data": result}
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="查询上传状态失败，请稍后重试")
