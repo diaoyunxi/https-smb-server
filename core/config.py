@@ -27,4 +27,4 @@ DOWNLOAD_CHUNK_SIZE = int(os.getenv("HTTPS_SMB_DOWNLOAD_CHUNK", str(4 * 1024 * 1
 MAX_FILENAME_LENGTH = 255
 
 # 文件上传大小限制（无限制，仅受磁盘空间约束）
-MAX_UPLOAD_SIZE = None
+MAX_UPLOAD_SIZE = int(os.getenv("HTTPS_SMB_MAX_UPLOAD", str(500 * 1024 * 1024)))  # 500MB
