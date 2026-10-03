@@ -20,12 +20,13 @@ import os
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Security
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
 from core.config import BASE_DIR, HOST, PORT
+from core.auth import verify_token, is_auth_enabled
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
 from server.routes.download import router as download_router
@@ -39,10 +40,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# 注册 API 路由
-app.include_router(files_router)
-app.include_router(upload_router)
-app.include_router(download_router)
+# 注册 API 路由（应用 Bearer Token 认证依赖）
+# 设置 HTTPS_SMB_TOKEN 环境变量即可启用认证，未设置时保持原有行为
+app.include_router(files_router, dependencies=[Security(verify_token)])
+app.include_router(upload_router, dependencies=[Security(verify_token)])
+app.include_router(download_router, dependencies=[Security(verify_token)])
 
 # 静态文件目录
 STATIC_DIR = Path(__file__).parent / "static"
@@ -127,6 +129,7 @@ def main():
     print(f"监听地址: {HOST}:{PORT}")
     print(f"访问地址: http://{HOST}:{PORT}")
     print(f"API 文档: http://{HOST}:{PORT}/docs")
+    print(f"认证状态: {'已启用 (HTTPS_SMB_TOKEN)' if is_auth_enabled() else '⚠️ 未启用（建议设置 HTTPS_SMB_TOKEN）'}")
     print("-" * 50)
 
     uvicorn.run(
