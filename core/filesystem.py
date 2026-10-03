@@ -25,12 +25,18 @@ def _safe_path(requested_path: str) -> Path:
     if not requested_path:
         return BASE_DIR
     # 规范化路径
-    clean = Path(requested).as_posix()
+    clean = Path(requested_path).as_posix()
     # 拒绝包含 .. 的路径
     parts = [p for p in clean.split("/") if p and p != ".."]
     safe = BASE_DIR.joinpath(*parts).resolve()
-    # 确保不会逃逸出根目录
-    if not str(safe).startswith(str(BASE_DIR.resolve())):
+    # 使用 commonpath 确保不会逃逸出根目录
+    # startswith 会被 /data_evil 绕过（匹配 /data 前缀），commonpath 更可靠
+    base_resolved = BASE_DIR.resolve()
+    try:
+        common = os.path.commonpath([safe, base_resolved])
+    except ValueError:
+        raise ValueError("路径不合法: 不允许访问根目录之外的内容")
+    if Path(common) != base_resolved:
         raise ValueError("路径不合法: 不允许访问根目录之外的内容")
     return safe
 
