@@ -254,6 +254,8 @@ def copy_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
     return _file_stat(new_path)
 
 
+MAX_SEARCH_RESULTS = 1000  # 搜索结果数量上限防止 DoS (CWE-400)
+
 def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
     """
     搜索文件和目录
@@ -283,6 +285,8 @@ def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
                 if entry.resolve() == TEMP_CHUNK_DIR.resolve():
                     continue
                 if query_lower in entry.name.lower():
+                    if len(results) >= MAX_SEARCH_RESULTS:
+                        break
                     results.append(_file_stat(entry))
                 if entry.is_dir():
                     _walk(entry, depth + 1)
