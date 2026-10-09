@@ -25,7 +25,7 @@ def _safe_path(requested_path: str) -> Path:
     if not requested_path:
         return BASE_DIR
     # 规范化路径
-    clean = Path(requested).as_posix()
+    clean = Path(requested_path).as_posix()
     # 拒绝包含 .. 的路径
     parts = [p for p in clean.split("/") if p and p != ".."]
     safe = BASE_DIR.joinpath(*parts).resolve()
