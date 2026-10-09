@@ -397,8 +397,11 @@ def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> Dict[st
     if not meta_path.exists():
         raise FileNotFoundError(f"上传会话不存在或已过期: {upload_id}")
 
-    with open(meta_path, "r", encoding="utf-8") as f:
-        meta = json.load(f)
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise OSError(f"上传会话元数据损坏: {e}") from e
 
     if chunk_index < 0 or chunk_index >= meta["total_chunks"]:
         raise ValueError(f"分块索引无效: {chunk_index}（有效范围: 0-{meta['total_chunks'] - 1}）")
@@ -436,8 +439,11 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
     if not meta_path.exists():
         raise FileNotFoundError(f"上传会话不存在或已过期: {upload_id}")
 
-    with open(meta_path, "r", encoding="utf-8") as f:
-        meta = json.load(f)
+    try:
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise OSError(f"上传会话元数据损坏: {e}") from e
 
     # 构建目标路径
     parent = _safe_path(meta["file_path"])
