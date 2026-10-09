@@ -138,7 +138,7 @@ async def api_download_batch(
                 if file_path.is_file():
                     zf.write(file_path, file_path.name)
                 elif file_path.is_dir():
-                    for root, dirs, files in os.walk(file_path):
+                    for root, _dirs, files in os.walk(file_path):
                         for file in files:
                             if file.startswith("."):
                                 continue
