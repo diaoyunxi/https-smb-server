@@ -17,7 +17,7 @@ TEMP_CHUNK_DIR = BASE_DIR / ".chunks"
 TEMP_CHUNK_DIR.mkdir(parents=True, exist_ok=True)
 
 # 服务配置
-HOST = os.getenv("HTTPS_SMB_HOST", "0.0.0.0")
+HOST = os.getenv("HTTPS_SMB_HOST", "127.0.0.1")
 PORT = int(os.getenv("HTTPS_SMB_PORT", "8080"))
 
 # 下载分块大小
