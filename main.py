@@ -28,6 +28,8 @@ from core.config import BASE_DIR, HOST, PORT
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
 from server.routes.download import router as download_router
+from server.middleware.rate_limit import RateLimitMiddleware
+from server.middleware.rate_limit import RateLimitMiddleware
 
 # =====================================================================
 # 创建 FastAPI 应用
@@ -37,6 +39,12 @@ app = FastAPI(
     description="基于 FastAPI 的 HTTPS 文件服务器，提供类 SMB/云盘 的文件管理功能",
     version="1.0.0",
 )
+
+# 注册速率限制中间件 (CWE-770: 防止 DoS 攻击)
+app.add_middleware(RateLimitMiddleware)
+
+# 注册速率限制中间件 (CWE-770: 防止 DoS 攻击)
+app.add_middleware(RateLimitMiddleware)
 
 # 注册 API 路由
 app.include_router(files_router)
