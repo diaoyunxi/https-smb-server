@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 # -*- coding: utf-8 -*-
 """
 文件系统操作核心模块
@@ -287,7 +291,7 @@ def search_files(query: str, dir_path: str = "") -> List[Dict[str, Any]]:
                 if entry.is_dir():
                     _walk(entry, depth + 1)
         except PermissionError:
-            pass
+            logger.debug("搜索跳过无权限目录: %s", target)
 
     _walk(target)
     return results
