@@ -64,7 +64,7 @@ async def api_download_file(
             start = int(parts[0]) if parts[0] else 0
             end = int(parts[1]) if parts[1] else file_size - 1
 
-            if start >= file_size or end >= file_size or start > end:
+            if start < 0 or end < 0 or start >= file_size or end >= file_size or start > end:
                 raise HTTPException(
                     status_code=416,
                     detail="请求范围无效",
