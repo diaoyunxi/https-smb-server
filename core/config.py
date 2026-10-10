@@ -28,3 +28,6 @@ MAX_FILENAME_LENGTH = 255
 
 # 文件上传大小限制（无限制，仅受磁盘空间约束）
 MAX_UPLOAD_SIZE = None
+
+# 分块上传过期时间（秒），超过此时间未完成的上传将被自动清理
+CHUNK_UPLOAD_EXPIRY_SECONDS = int(os.getenv("HTTPS_SMB_CHUNK_EXPIRY", str(24 * 3600)))  # 默认 24 小时
