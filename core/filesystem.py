@@ -498,6 +498,58 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return {"upload_id": upload_id, "status": "cancelled"}
 
 
+# 分块上传会话过期时间（秒），超过此时间的未完成会话将被自动清理
+CHUNK_UPLOAD_EXPIRE_SECONDS = 24 * 3600  # 24 小时
+
+
+def cleanup_stale_uploads() -> Dict[str, Any]:
+    """
+    清理过期的分块上传会话
+
+    遍历 TEMP_CHUNK_DIR 下所有上传会话，删除创建时间超过
+    CHUNK_UPLOAD_EXPIRE_SECONDS 的会话目录，防止未完成的
+    上传会话长期积累导致磁盘空间泄漏。
+
+    :return: 清理结果（清理数量）
+    """
+    import json as _json
+
+    if not TEMP_CHUNK_DIR.exists():
+        return {"cleaned": 0, "message": "无临时目录"}
+
+    now = time.time()
+    cleaned = 0
+    errors = 0
+
+    for session_dir in TEMP_CHUNK_DIR.iterdir():
+        if not session_dir.is_dir():
+            continue
+
+        meta_path = session_dir / ".meta.json"
+        if not meta_path.exists():
+            # 无元数据的孤立目录，直接清理
+            try:
+                shutil.rmtree(session_dir, ignore_errors=True)
+                cleaned += 1
+            except Exception:
+                errors += 1
+            continue
+
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = _json.load(f)
+            created_at = meta.get("created_at", 0)
+            if now - created_at > CHUNK_UPLOAD_EXPIRE_SECONDS:
+                shutil.rmtree(session_dir, ignore_errors=True)
+                cleaned += 1
+        except Exception:
+            # 元数据损坏的会话也清理掉
+            shutil.rmtree(session_dir, ignore_errors=True)
+            cleaned += 1
+
+    return {"cleaned": cleaned, "errors": errors}
+
+
 def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str:
     """
     计算文件MD5
@@ -506,7 +558,7 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     :param chunk_size: 读取块大小
     :return: MD5十六进制字符串
     """
-    md5 = hashlib.md5()
+    md5 = hashlib.md5(usedforsecurity=False)  # S324: 仅用于文件完整性校验，非密码学用途
     with open(file_path, "rb") as f:
         while True:
             data = f.read(chunk_size)
