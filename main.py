@@ -144,7 +144,7 @@ def main():
     启动 HTTP 服务器（配合 cloudflared 自动转为 HTTPS）
     """
     import uvicorn
-import signal
+    import signal
 
     # 确保数据目录存在
     BASE_DIR.mkdir(parents=True, exist_ok=True)
