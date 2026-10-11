@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 https-smb-server 配置模块
 通过环境变量或 .env 文件配置
