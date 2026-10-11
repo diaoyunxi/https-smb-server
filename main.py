@@ -17,6 +17,7 @@ https-smb-server 主入口
 
 import sys
 import os
+import signal
 
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -144,7 +145,6 @@ def main():
     启动 HTTP 服务器（配合 cloudflared 自动转为 HTTPS）
     """
     import uvicorn
-    import signal
 
     # 确保数据目录存在
     BASE_DIR.mkdir(parents=True, exist_ok=True)
