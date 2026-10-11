@@ -29,7 +29,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-默认监听 `0.0.0.0:8080`，数据存储在 `./data` 目录。
+默认监听 `127.0.0.1:8080`，数据存储在 `./data` 目录。
 
 ### 3. 配合 Cloudflare Tunnel 使用 HTTPS
 
@@ -45,7 +45,7 @@ Cloudflare Tunnel 会自动提供一个 HTTPS URL，无需手动配置证书。
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `HTTPS_SMB_ROOT` | 存储根目录 | `./data` |
-| `HTTPS_SMB_HOST` | 监听地址 | `0.0.0.0` |
+| `HTTPS_SMB_HOST` | 监听地址 | `127.0.0.1` |
 | `HTTPS_SMB_PORT` | 监听端口 | `8080` |
 | `HTTPS_SMB_CHUNK_SIZE` | 分块上传大小（字节） | `8388608` (8MB) |
 | `HTTPS_SMB_DOWNLOAD_CHUNK` | 下载流式块大小（字节） | `4194304` (4MB) |
