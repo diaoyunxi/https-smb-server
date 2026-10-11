@@ -15,21 +15,22 @@ https-smb-server 主入口
     HTTPS_SMB_CHUNK_SIZE - 分块上传大小（默认: 8MB）
 """
 
-import sys
 import os
+import signal
+import sys
 
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
-from pathlib import Path
 
 from core.config import BASE_DIR, HOST, PORT
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
 from server.routes.download import router as download_router
-from server.middleware.rate_limit import RateLimitMiddleware
 from server.middleware.rate_limit import RateLimitMiddleware
 
 # =====================================================================
@@ -144,7 +145,6 @@ def main():
     启动 HTTP 服务器（配合 cloudflared 自动转为 HTTPS）
     """
     import uvicorn
-import signal
 
     # 确保数据目录存在
     BASE_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,7 +168,6 @@ import signal
 def _graceful_shutdown(signum, frame):
     """优雅关闭：处理 SIGTERM/SIGINT 信号"""
     print("\n[Server] Received shutdown signal, closing gracefully...")
-    import sys
     sys.exit(0)
 
 signal.signal(signal.SIGTERM, _graceful_shutdown)
