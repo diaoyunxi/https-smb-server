@@ -1,10 +1,16 @@
 [tool.ruff]
+ignore = [
+    "RUF001",  # ambiguous-unicode-character-string（中文项目）
+    "RUF002",  # ambiguous-unicode-character-docstring
+    "RUF003",  # ambiguous-unicode-character-comment
+    "D203",    # 与 D211 不兼容
+    "D213",    # 与 D212 不兼容
+]
 line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B", "S", "PLE", "UP", "RUF"]
-ignore = ["S101", "B008", "E501"]
+select = ["E", "F", "W", "I", "UP", "S", "B", "SIM"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106"]
+"tests/*" = ["S101"]
