@@ -76,11 +76,11 @@ async def api_simple_upload(
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail="文件冲突，请检查后重试")
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="上传请求无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
 
@@ -105,9 +105,9 @@ async def api_init_upload(req: InitUploadRequest):
         )
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="上传请求无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
 
@@ -129,9 +129,9 @@ async def api_upload_chunk(
         result = upload_chunk(upload_id, chunk_index, data)
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="上传请求无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}")
 
@@ -145,11 +145,11 @@ async def api_complete_upload(req: CompleteUploadRequest):
         result = complete_chunk_upload(req.upload_id)
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="上传请求无效")
     except OSError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="上传请求无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}")
 
@@ -172,6 +172,6 @@ async def api_upload_status(upload_id: str):
         result = get_upload_status(upload_id)
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="服务器内部错误")
