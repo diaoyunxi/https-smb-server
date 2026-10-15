@@ -9,11 +9,10 @@ import io
 import zipfile
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from typing import Optional, List
+from fastapi.responses import FileResponse, StreamingResponse
 
-from core.filesystem import _safe_path, _file_stat
-from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
+from core.filesystem import _safe_path
+from core.config import DOWNLOAD_CHUNK_SIZE
 
 router = APIRouter(prefix="/api/download", tags=["文件下载"])
 
