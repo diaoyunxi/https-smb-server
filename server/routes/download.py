@@ -107,7 +107,7 @@ async def api_download_file(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="下载失败，请稍后重试")
 
 
 @router.get("/batch")
@@ -175,4 +175,4 @@ async def api_download_batch(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="打包下载失败，请稍后重试")
