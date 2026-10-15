@@ -26,8 +26,12 @@ DOWNLOAD_CHUNK_SIZE = int(os.getenv("HTTPS_SMB_DOWNLOAD_CHUNK", str(4 * 1024 * 1
 # 允许的文件名最大长度
 MAX_FILENAME_LENGTH = 255
 
-# 文件上传大小限制（无限制，仅受磁盘空间约束）
-MAX_UPLOAD_SIZE = None
+# 文件上传大小限制（默认 10GB，防止恶意上传超大文件填满磁盘导致 DoS）
+# 可通过环境变量 HTTPS_SMB_MAX_UPLOAD_SIZE 调整，设为 0 表示不限制
+_raw_upload_limit = os.getenv("HTTPS_SMB_MAX_UPLOAD_SIZE", "")
+MAX_UPLOAD_SIZE = (
+    None if _raw_upload_limit == "0" else int(_raw_upload_limit) if _raw_upload_limit else 10 * 1024 * 1024 * 1024
+)
 
 # 分块上传过期时间（秒），超过此时间未完成的上传将被自动清理
 CHUNK_UPLOAD_EXPIRY_SECONDS = int(os.getenv("HTTPS_SMB_CHUNK_EXPIRY", str(24 * 3600)))  # 默认 24 小时
