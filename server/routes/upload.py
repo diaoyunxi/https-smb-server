@@ -1,28 +1,22 @@
-# -*- coding: utf-8 -*-
 """
 文件上传 API 路由
 支持简单上传和分块上传（断点续传）
 """
 
-import os
 from typing import Annotated
-import time
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
-from fastapi.responses import FileResponse, JSONResponse
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
-from typing import Optional
 
-from core.filesystem import (
-    simple_upload,
-    init_chunk_upload,
-    upload_chunk,
-    complete_chunk_upload,
-    cancel_chunk_upload,
-    get_upload_status,
-    _safe_path,
-)
 from core.config import CHUNK_SIZE
-
+from core.filesystem import (
+    cancel_chunk_upload,
+    complete_chunk_upload,
+    get_upload_status,
+    init_chunk_upload,
+    simple_upload,
+    upload_chunk,
+)
 
 # 最大上传文件大小 (500MB)
 MAX_UPLOAD_SIZE = 500 * 1024 * 1024
