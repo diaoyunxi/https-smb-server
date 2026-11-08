@@ -1,3 +1,5 @@
+> [← 返回文档目录](../README.md) ｜ 原文件：`CHANGELOG.md`。
+
 # Changelog
 
 All notable changes to https-smb-server will be documented in this file.
