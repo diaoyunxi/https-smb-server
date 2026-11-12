@@ -4,16 +4,17 @@
 支持完整下载、分块下载（Range 请求）、批量下载（ZIP 打包）
 """
 
-import os
 import io
+import os
 import zipfile
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from typing import Optional, List
+from typing import List, Optional
 
-from core.filesystem import _safe_path, _file_stat
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+
 from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
+from core.filesystem import _file_stat, _safe_path
 
 router = APIRouter(prefix="/api/download", tags=["文件下载"])
 

@@ -8,14 +8,14 @@ logger = logging.getLogger(__name__)
 提供文件和目录的增删改查、移动、复制、搜索等功能
 """
 
+import hashlib
 import os
 import shutil
 import time
-import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZE
+from core.config import BASE_DIR, CHUNK_SIZE, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR
 
 
 def _safe_path(requested_path: str) -> Path:
@@ -665,6 +665,7 @@ def cleanup_expired_uploads() -> int:
     :return: 清理的过期上传数量
     """
     import json
+
     from core.config import CHUNK_UPLOAD_EXPIRY_SECONDS
 
     if not TEMP_CHUNK_DIR.exists():
