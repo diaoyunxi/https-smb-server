@@ -35,7 +35,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         app,
         max_requests: int = RATE_LIMIT_REQUESTS,
         window_seconds: int = RATE_LIMIT_WINDOW,
-        exempt_paths: set = None,
+        exempt_paths: set | None = None,
     ):
         super().__init__(app)
         self.max_requests = max_requests
