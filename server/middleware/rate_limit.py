@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 速率限制中间件
 
@@ -6,11 +5,11 @@
 使用内存存储，适用于单实例部署。多实例部署时建议替换为 Redis 后端。
 """
 
+import logging
 import os
 import time
-import logging
 from collections import defaultdict
-from typing import Callable
+from collections.abc import Callable
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request

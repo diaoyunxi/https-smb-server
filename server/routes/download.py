@@ -1,19 +1,18 @@
-# -*- coding: utf-8 -*-
 """
 文件下载 API 路由
 支持完整下载、分块下载（Range 请求）、批量下载（ZIP 打包）
 """
 
-import os
 import io
+import os
 import zipfile
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from typing import Optional, List
 
-from core.filesystem import _safe_path, _file_stat
-from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse, StreamingResponse
+
+from core.config import DOWNLOAD_CHUNK_SIZE
+from core.filesystem import _safe_path
 
 router = APIRouter(prefix="/api/download", tags=["文件下载"])
 
