@@ -4,13 +4,9 @@
 支持简单上传和分块上传（断点续传）
 """
 
-import os
 from typing import Annotated
-import time
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
-from typing import Optional
 
 from core.filesystem import (
     simple_upload,
@@ -19,7 +15,6 @@ from core.filesystem import (
     complete_chunk_upload,
     cancel_chunk_upload,
     get_upload_status,
-    _safe_path,
 )
 from core.config import CHUNK_SIZE
 

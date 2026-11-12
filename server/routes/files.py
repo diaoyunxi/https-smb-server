@@ -6,7 +6,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 
 from core.filesystem import (
     list_directory,
