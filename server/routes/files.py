@@ -194,7 +194,7 @@ async def api_batch_delete(req: BatchDeleteRequest):
         try:
             result = delete_path(path, req.recursive)
             results.append(result)
-        except Exception as e:
+        except Exception:
             errors.append({"path": path, "error": "删除失败"})
     return {"success": len(errors) == 0, "data": {"deleted": results, "errors": errors}}
 
