@@ -105,7 +105,7 @@ async def api_download_file(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="下载请求参数无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
 
@@ -173,6 +173,6 @@ async def api_download_batch(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="下载请求参数无效")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
