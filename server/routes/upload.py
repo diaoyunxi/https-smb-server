@@ -159,8 +159,15 @@ async def api_cancel_upload(req: CancelUploadRequest):
     """
     取消分块上传，清理临时文件
     """
-    result = cancel_chunk_upload(req.upload_id)
-    return {"success": True, "data": result}
+    try:
+        result = cancel_chunk_upload(req.upload_id)
+        return {"success": True, "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="非法的上传会话 ID")
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail="上传会话不存在")
+    except Exception:
+        raise HTTPException(status_code=500, detail="取消上传失败")
 
 
 @router.get("/status/{upload_id}")
@@ -171,6 +178,8 @@ async def api_upload_status(upload_id: str):
     try:
         result = get_upload_status(upload_id)
         return {"success": True, "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="非法的上传会话 ID")
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail="文件不存在或路径无效")
     except Exception as e:

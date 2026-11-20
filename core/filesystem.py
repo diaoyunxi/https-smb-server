@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -16,6 +17,9 @@ from typing import Any, Dict, List, Optional
 from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
+
+# 合法的分块上传会话 ID：服务端只生成 uuid4().hex（32 位十六进制）
+_UPLOAD_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 
 def _safe_path(requested_path: str) -> Path:
@@ -328,7 +332,13 @@ def get_storage_info() -> Dict[str, Any]:
 # =====================================================================
 
 def _get_chunk_dir(upload_id: str) -> Path:
-    """获取分块上传的临时目录"""
+    """获取分块上传的临时目录
+
+    upload_id 来自外部请求，必须限定为安全 token，否则形如 "../../.." 的 ID
+    会让目录逃逸出 TEMP_CHUNK_DIR，cancel/complete 会对任意目录执行 rmtree 或写入 (CWE-22)。
+    """
+    if not upload_id or not _UPLOAD_ID_RE.fullmatch(upload_id):
+        raise ValueError(f"非法的上传会话 ID: {upload_id!r}")
     chunk_dir = TEMP_CHUNK_DIR / upload_id
     chunk_dir.mkdir(parents=True, exist_ok=True)
     return chunk_dir
