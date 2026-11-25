@@ -1,19 +1,18 @@
-# -*- coding: utf-8 -*-
 """
 文件下载 API 路由
 支持完整下载、分块下载（Range 请求）、批量下载（ZIP 打包）
 """
 
-import os
 import io
+import os
 import zipfile
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
-from typing import Optional, List
 
-from core.filesystem import _safe_path, _file_stat
-from core.config import BASE_DIR, DOWNLOAD_CHUNK_SIZE
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import FileResponse, StreamingResponse
+
+from core.config import DOWNLOAD_CHUNK_SIZE
+from core.filesystem import _safe_path
 
 router = APIRouter(prefix="/api/download", tags=["文件下载"])
 
@@ -27,6 +26,7 @@ def _get_download_headers(file_path: Path, file_name: str) -> dict:
     :return: 响应头字典
     """
     import urllib.parse
+
     encoded_name = urllib.parse.quote(file_name)
     return {
         "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_name}",
@@ -105,9 +105,9 @@ async def api_download_file(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="下载请求参数无效")
+        raise HTTPException(status_code=400, detail="下载请求参数无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"下载失败: {str(e)}") from e
 
 
 @router.get("/batch")
@@ -148,6 +148,7 @@ async def api_download_batch(
 
         zip_buffer.seek(0)
         import time
+
         zip_name = f"batch_download_{int(time.time())}.zip"
 
         def _stream_zip():
@@ -173,6 +174,6 @@ async def api_download_batch(
     except HTTPException:
         raise
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="下载请求参数无效")
+        raise HTTPException(status_code=400, detail="下载请求参数无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"打包下载失败: {str(e)}") from e

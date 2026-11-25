@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 文件和目录操作 API 路由
 提供文件系统的增删改查、移动、复制、搜索等接口
@@ -6,18 +5,17 @@
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import List, Optional
 
 from core.filesystem import (
-    list_directory,
-    create_directory,
-    get_file_info,
-    delete_path,
-    rename_path,
-    move_path,
     copy_path,
-    search_files,
+    create_directory,
+    delete_path,
+    get_file_info,
     get_storage_info,
+    list_directory,
+    move_path,
+    rename_path,
+    search_files,
 )
 
 router = APIRouter(prefix="/api", tags=["文件操作"])
@@ -27,45 +25,53 @@ router = APIRouter(prefix="/api", tags=["文件操作"])
 # 请求/响应模型
 # =====================================================================
 
+
 class CreateDirRequest(BaseModel):
     """创建目录请求"""
+
     path: str = Field(default="", description="父目录相对路径，空字符串表示根目录")
     name: str = Field(..., min_length=1, max_length=255, description="新目录名称")
 
 
 class RenameRequest(BaseModel):
     """重命名请求"""
+
     path: str = Field(..., description="文件/目录相对路径")
     new_name: str = Field(..., min_length=1, max_length=255, description="新名称")
 
 
 class MoveRequest(BaseModel):
     """移动请求"""
+
     src: str = Field(..., description="源文件/目录相对路径")
     dest: str = Field(..., description="目标目录相对路径")
 
 
 class CopyRequest(BaseModel):
     """复制请求"""
+
     src: str = Field(..., description="源文件/目录相对路径")
     dest: str = Field(..., description="目标目录相对路径")
 
 
 class DeleteRequest(BaseModel):
     """删除请求"""
+
     path: str = Field(..., description="文件/目录相对路径")
     recursive: bool = Field(default=False, description="是否递归删除目录")
 
 
 class BatchDeleteRequest(BaseModel):
     """批量删除请求"""
-    paths: List[str] = Field(..., min_length=1, description="要删除的文件/目录路径列表")
+
+    paths: list[str] = Field(..., min_length=1, description="要删除的文件/目录路径列表")
     recursive: bool = Field(default=False, description="是否递归删除目录")
 
 
 # =====================================================================
 # 接口实现
 # =====================================================================
+
 
 @router.get("/files")
 async def api_list_files(
@@ -79,12 +85,12 @@ async def api_list_files(
     try:
         items = list_directory(path, sort_by, sort_order)
         return {"success": True, "data": items}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except NotADirectoryError:
-        raise HTTPException(status_code=400, detail="指定路径不是目录")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except NotADirectoryError as exc:
+        raise HTTPException(status_code=400, detail="指定路径不是目录") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.get("/files/info")
@@ -97,10 +103,10 @@ async def api_file_info(
     try:
         info = get_file_info(path)
         return {"success": True, "data": info}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/mkdir")
@@ -111,12 +117,12 @@ async def api_create_directory(req: CreateDirRequest):
     try:
         info = create_directory(req.path, req.name)
         return {"success": True, "data": info}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except FileExistsError:
-        raise HTTPException(status_code=409, detail="文件或目录已存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail="文件或目录已存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/rename")
@@ -127,12 +133,12 @@ async def api_rename(req: RenameRequest):
     try:
         info = rename_path(req.path, req.new_name)
         return {"success": True, "data": info}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except FileExistsError:
-        raise HTTPException(status_code=409, detail="文件或目录已存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail="文件或目录已存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/move")
@@ -143,12 +149,12 @@ async def api_move(req: MoveRequest):
     try:
         info = move_path(req.src, req.dest)
         return {"success": True, "data": info}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except FileExistsError:
-        raise HTTPException(status_code=409, detail="文件或目录已存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail="文件或目录已存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/copy")
@@ -159,12 +165,12 @@ async def api_copy(req: CopyRequest):
     try:
         info = copy_path(req.src, req.dest)
         return {"success": True, "data": info}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except FileExistsError:
-        raise HTTPException(status_code=409, detail="文件或目录已存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail="文件或目录已存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/delete")
@@ -175,12 +181,12 @@ async def api_delete(req: DeleteRequest):
     try:
         result = delete_path(req.path, req.recursive)
         return {"success": True, "data": result}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except OSError:
-        raise HTTPException(status_code=400, detail="文件系统操作失败")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except OSError as exc:
+        raise HTTPException(status_code=400, detail="文件系统操作失败") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.post("/files/batch-delete")
@@ -194,7 +200,7 @@ async def api_batch_delete(req: BatchDeleteRequest):
         try:
             result = delete_path(path, req.recursive)
             results.append(result)
-        except Exception as e:
+        except Exception:
             errors.append({"path": path, "error": "删除失败"})
     return {"success": len(errors) == 0, "data": {"deleted": results, "errors": errors}}
 
@@ -210,10 +216,10 @@ async def api_search(
     try:
         items = search_files(q, path)
         return {"success": True, "data": items}
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="文件或目录不存在")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="请求参数无效")
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="文件或目录不存在") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="请求参数无效") from exc
 
 
 @router.get("/storage")

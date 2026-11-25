@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import re
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from core.config import BASE_DIR, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR, CHUNK_SIZE
+from core.config import BASE_DIR, CHUNK_SIZE, MAX_FILENAME_LENGTH, TEMP_CHUNK_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ def _validate_filename(name: str) -> str:
     return name
 
 
-def _file_stat(path: Path) -> Dict[str, Any]:
+def _file_stat(path: Path) -> dict[str, Any]:
     """
     获取文件/目录的元信息
 
@@ -86,8 +85,7 @@ def _file_stat(path: Path) -> Dict[str, Any]:
     }
 
 
-def list_directory(dir_path: str = "", sort_by: str = "name",
-                   sort_order: str = "asc") -> List[Dict[str, Any]]:
+def list_directory(dir_path: str = "", sort_by: str = "name", sort_order: str = "asc") -> list[dict[str, Any]]:
     """
     列出目录内容
 
@@ -129,7 +127,7 @@ def list_directory(dir_path: str = "", sort_by: str = "name",
     return items
 
 
-def create_directory(dir_path: str, name: str) -> Dict[str, Any]:
+def create_directory(dir_path: str, name: str) -> dict[str, Any]:
     """
     在指定目录下创建子目录
 
@@ -151,7 +149,7 @@ def create_directory(dir_path: str, name: str) -> Dict[str, Any]:
     return _file_stat(new_dir)
 
 
-def get_file_info(file_path: str) -> Dict[str, Any]:
+def get_file_info(file_path: str) -> dict[str, Any]:
     """
     获取单个文件/目录的详细信息
 
@@ -164,7 +162,7 @@ def get_file_info(file_path: str) -> Dict[str, Any]:
     return _file_stat(target)
 
 
-def delete_path(file_path: str, recursive: bool = False) -> Dict[str, Any]:
+def delete_path(file_path: str, recursive: bool = False) -> dict[str, Any]:
     """
     删除文件或目录
 
@@ -190,7 +188,7 @@ def delete_path(file_path: str, recursive: bool = False) -> Dict[str, Any]:
     return {"deleted": True, "name": info["name"], "path": file_path}
 
 
-def rename_path(file_path: str, new_name: str) -> Dict[str, Any]:
+def rename_path(file_path: str, new_name: str) -> dict[str, Any]:
     """
     重命名文件或目录
 
@@ -211,7 +209,7 @@ def rename_path(file_path: str, new_name: str) -> Dict[str, Any]:
     return _file_stat(new_path)
 
 
-def move_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
+def move_path(src_path: str, dest_dir: str) -> dict[str, Any]:
     """
     移动文件或目录到目标目录
 
@@ -235,7 +233,7 @@ def move_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
     return _file_stat(new_path)
 
 
-def copy_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
+def copy_path(src_path: str, dest_dir: str) -> dict[str, Any]:
     """
     复制文件或目录到目标目录
 
@@ -262,8 +260,7 @@ def copy_path(src_path: str, dest_dir: str) -> Dict[str, Any]:
     return _file_stat(new_path)
 
 
-def search_files(query: str, dir_path: str = "",
-                 max_results: int = 200) -> List[Dict[str, Any]]:
+def search_files(query: str, dir_path: str = "", max_results: int = 200) -> list[dict[str, Any]]:
     """
     搜索文件和目录
 
@@ -312,7 +309,7 @@ def search_files(query: str, dir_path: str = "",
     return results
 
 
-def get_storage_info() -> Dict[str, Any]:
+def get_storage_info() -> dict[str, Any]:
     """
     获取存储空间信息
 
@@ -331,6 +328,7 @@ def get_storage_info() -> Dict[str, Any]:
 # 分块上传相关
 # =====================================================================
 
+
 def _get_chunk_dir(upload_id: str) -> Path:
     """获取分块上传的临时目录
 
@@ -344,8 +342,9 @@ def _get_chunk_dir(upload_id: str) -> Path:
     return chunk_dir
 
 
-def init_chunk_upload(file_path: str, file_name: str, file_size: int,
-                      total_chunks: int, file_hash: str = "") -> Dict[str, Any]:
+def init_chunk_upload(
+    file_path: str, file_name: str, file_size: int, total_chunks: int, file_hash: str = ""
+) -> dict[str, Any]:
     """
     初始化分块上传会话
 
@@ -379,6 +378,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
 
     # 生成上传会话ID
     import uuid
+
     upload_id = uuid.uuid4().hex
 
     # 保存会话元信息
@@ -393,6 +393,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     }
     meta_path = chunk_dir / ".meta.json"
     import json
+
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
@@ -404,7 +405,7 @@ def init_chunk_upload(file_path: str, file_name: str, file_size: int,
     }
 
 
-def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> Dict[str, Any]:
+def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> dict[str, Any]:
     """
     上传单个分块
 
@@ -422,7 +423,7 @@ def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> Dict[st
         raise FileNotFoundError(f"上传会话不存在或已过期: {upload_id}")
 
     try:
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         raise OSError(f"上传会话元数据损坏: {e}") from e
@@ -452,7 +453,7 @@ def upload_chunk(upload_id: str, chunk_index: int, chunk_data: bytes) -> Dict[st
     }
 
 
-def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
+def complete_chunk_upload(upload_id: str) -> dict[str, Any]:
     """
     完成分块上传，合并所有分块
 
@@ -468,7 +469,7 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
         raise FileNotFoundError(f"上传会话不存在或已过期: {upload_id}")
 
     try:
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         raise OSError(f"上传会话元数据损坏: {e}") from e
@@ -480,9 +481,7 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
     # 合并分块
     chunk_files = sorted(chunk_dir.glob("chunk_*"))
     if len(chunk_files) != meta["total_chunks"]:
-        raise OSError(
-            f"分块不完整: 已上传 {len(chunk_files)}/{meta['total_chunks']} 块"
-        )
+        raise OSError(f"分块不完整: 已上传 {len(chunk_files)}/{meta['total_chunks']} 块")
 
     with open(target_file, "wb") as f:
         for chunk_file in chunk_files:
@@ -503,9 +502,7 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
         if not result["hash_match"]:
             # MD5不匹配，删除文件并报错
             target_file.unlink()
-            raise ValueError(
-                f"文件校验失败: 期望MD5={meta['file_hash']}, 实际MD5={actual_hash}"
-            )
+            raise ValueError(f"文件校验失败: 期望MD5={meta['file_hash']}, 实际MD5={actual_hash}")
 
     # 清理临时分块目录
     shutil.rmtree(chunk_dir, ignore_errors=True)
@@ -513,7 +510,7 @@ def complete_chunk_upload(upload_id: str) -> Dict[str, Any]:
     return result
 
 
-def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
+def cancel_chunk_upload(upload_id: str) -> dict[str, Any]:
     """
     取消分块上传，清理临时文件
 
@@ -530,7 +527,7 @@ def cancel_chunk_upload(upload_id: str) -> Dict[str, Any]:
 CHUNK_UPLOAD_EXPIRE_SECONDS = 24 * 3600  # 24 小时
 
 
-def cleanup_stale_uploads() -> Dict[str, Any]:
+def cleanup_stale_uploads() -> dict[str, Any]:
     """
     清理过期的分块上传会话
 
@@ -564,7 +561,7 @@ def cleanup_stale_uploads() -> Dict[str, Any]:
             continue
 
         try:
-            with open(meta_path, "r", encoding="utf-8") as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = _json.load(f)
             created_at = meta.get("created_at", 0)
             if now - created_at > CHUNK_UPLOAD_EXPIRE_SECONDS:
@@ -596,7 +593,7 @@ def _compute_file_md5(file_path: Path, chunk_size: int = 8 * 1024 * 1024) -> str
     return md5.hexdigest()
 
 
-def get_upload_status(upload_id: str) -> Dict[str, Any]:
+def get_upload_status(upload_id: str) -> dict[str, Any]:
     """
     查询分块上传进度
 
@@ -611,7 +608,7 @@ def get_upload_status(upload_id: str) -> Dict[str, Any]:
     if not meta_path.exists():
         raise FileNotFoundError(f"上传会话不存在或已过期: {upload_id}")
 
-    with open(meta_path, "r", encoding="utf-8") as f:
+    with open(meta_path, encoding="utf-8") as f:
         meta = json.load(f)
 
     uploaded_chunks = len(list(chunk_dir.glob("chunk_*")))
@@ -633,8 +630,8 @@ def get_upload_status(upload_id: str) -> Dict[str, Any]:
 # 简单上传（小文件）
 # =====================================================================
 
-def simple_upload(dir_path: str, file_name: str, content: bytes,
-                  overwrite: bool = False) -> Dict[str, Any]:
+
+def simple_upload(dir_path: str, file_name: str, content: bytes, overwrite: bool = False) -> dict[str, Any]:
     """
     简单文件上传（非分块，适合小文件）
 
@@ -661,9 +658,11 @@ def simple_upload(dir_path: str, file_name: str, content: bytes,
 
     return _file_stat(target)
 
+
 # =====================================================================
 # 分块上传过期清理
 # =====================================================================
+
 
 def cleanup_expired_uploads() -> int:
     """
@@ -675,6 +674,7 @@ def cleanup_expired_uploads() -> int:
     :return: 清理的过期上传数量
     """
     import json
+
     from core.config import CHUNK_UPLOAD_EXPIRY_SECONDS
 
     if not TEMP_CHUNK_DIR.exists():
@@ -695,7 +695,7 @@ def cleanup_expired_uploads() -> int:
             continue
 
         try:
-            with open(meta_path, "r", encoding="utf-8") as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = json.load(f)
             created_at = meta.get("created_at", 0)
             if now - created_at > CHUNK_UPLOAD_EXPIRY_SECONDS:

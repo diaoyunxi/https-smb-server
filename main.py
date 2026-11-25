@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 https-smb-server 主入口
 基于 FastAPI 的 HTTPS 文件服务器，通过 cloudflared 暴露为 HTTPS
@@ -15,22 +14,23 @@ https-smb-server 主入口
     HTTPS_SMB_CHUNK_SIZE - 分块上传大小（默认: 8MB）
 """
 
-import sys
 import os
 import signal
+import sys
 
 # 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse
 from pathlib import Path
 
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
+
 from core.config import BASE_DIR, HOST, PORT
+from server.middleware.rate_limit import RateLimitMiddleware
+from server.routes.download import router as download_router
 from server.routes.files import router as files_router
 from server.routes.upload import router as upload_router
-from server.routes.download import router as download_router
-from server.middleware.rate_limit import RateLimitMiddleware
 
 # =====================================================================
 # 创建 FastAPI 应用
@@ -57,6 +57,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 # 页面路由
 # =====================================================================
 
+
 @app.get("/")
 async def index():
     """
@@ -79,12 +80,14 @@ async def index():
 # 健康检查
 # =====================================================================
 
+
 @app.get("/api/health")
 async def health_check():
     """
     健康检查接口
     """
     from core.filesystem import get_storage_info
+
     storage = get_storage_info()
     return {
         "success": True,
@@ -100,9 +103,6 @@ async def health_check():
 # 错误处理
 # =====================================================================
 
-from fastapi import Request
-from fastapi.responses import JSONResponse as _JSONResponse
-
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -111,9 +111,10 @@ async def global_exception_handler(request: Request, exc: Exception):
     同时在服务端记录完整异常堆栈，便于排查 500 错误
     """
     import logging
+
     _logger = logging.getLogger("https-smb-server")
     _logger.exception("未捕获异常 [%s %s]: %s", request.method, request.url.path, exc)
-    return _JSONResponse(
+    return JSONResponse(
         status_code=500,
         content={"success": False, "detail": "服务器内部错误"},
     )
@@ -123,10 +124,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 # 启动事件：清理过期的分块上传
 # =====================================================================
 
+
 @app.on_event("startup")
 async def startup_cleanup_expired_uploads():
     """启动时清理过期的未完成分块上传，防止磁盘空间被遗弃的上传会话占满"""
     from core.filesystem import cleanup_expired_uploads
+
     cleaned = cleanup_expired_uploads()
     if cleaned > 0:
         print(f"已清理 {cleaned} 个过期的分块上传会话")
@@ -135,6 +138,7 @@ async def startup_cleanup_expired_uploads():
 # =====================================================================
 # 启动
 # =====================================================================
+
 
 def main():
     """
@@ -160,12 +164,13 @@ def main():
     )
 
 
-
 def _graceful_shutdown(signum, frame):
     """优雅关闭：处理 SIGTERM/SIGINT 信号"""
     print("\n[Server] Received shutdown signal, closing gracefully...")
     import sys
+
     sys.exit(0)
+
 
 signal.signal(signal.SIGTERM, _graceful_shutdown)
 signal.signal(signal.SIGINT, _graceful_shutdown)

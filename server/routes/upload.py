@@ -1,28 +1,22 @@
-# -*- coding: utf-8 -*-
 """
 文件上传 API 路由
 支持简单上传和分块上传（断点续传）
 """
 
-import os
 from typing import Annotated
-import time
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Form
-from fastapi.responses import FileResponse, JSONResponse
+
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
-from typing import Optional
 
-from core.filesystem import (
-    simple_upload,
-    init_chunk_upload,
-    upload_chunk,
-    complete_chunk_upload,
-    cancel_chunk_upload,
-    get_upload_status,
-    _safe_path,
-)
 from core.config import CHUNK_SIZE
-
+from core.filesystem import (
+    cancel_chunk_upload,
+    complete_chunk_upload,
+    get_upload_status,
+    init_chunk_upload,
+    simple_upload,
+    upload_chunk,
+)
 
 # 最大上传文件大小 (500MB)
 MAX_UPLOAD_SIZE = 500 * 1024 * 1024
@@ -34,8 +28,10 @@ router = APIRouter(prefix="/api/upload", tags=["文件上传"])
 # 请求模型
 # =====================================================================
 
+
 class InitUploadRequest(BaseModel):
     """初始化分块上传请求"""
+
     path: str = Field(default="", description="目标目录相对路径")
     file_name: str = Field(..., min_length=1, max_length=255, description="文件名")
     file_size: int = Field(..., gt=0, description="文件总大小（字节）")
@@ -44,17 +40,20 @@ class InitUploadRequest(BaseModel):
 
 class CompleteUploadRequest(BaseModel):
     """完成分块上传请求"""
+
     upload_id: str = Field(..., description="上传会话ID")
 
 
 class CancelUploadRequest(BaseModel):
     """取消分块上传请求"""
+
     upload_id: str = Field(..., description="上传会话ID")
 
 
 # =====================================================================
 # 简单上传（小文件，非分块）
 # =====================================================================
+
 
 @router.post("/simple")
 async def api_simple_upload(
@@ -69,25 +68,23 @@ async def api_simple_upload(
         # 校验文件大小
         content = await file.read()
         if len(content) > MAX_UPLOAD_SIZE:
-            raise HTTPException(
-                status_code=413,
-                detail=f"文件大小超过限制 ({MAX_UPLOAD_SIZE // (1024*1024)}MB)"
-            )
+            raise HTTPException(status_code=413, detail=f"文件大小超过限制 ({MAX_UPLOAD_SIZE // (1024 * 1024)}MB)")
         info = simple_upload(path, file.filename or "unnamed", content, overwrite)
         return {"success": True, "data": info}
     except FileExistsError as e:
-        raise HTTPException(status_code=409, detail="文件冲突，请检查后重试")
+        raise HTTPException(status_code=409, detail="文件冲突，请检查后重试") from e
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="上传请求无效")
+        raise HTTPException(status_code=400, detail="上传请求无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"上传失败: {str(e)}") from e
 
 
 # =====================================================================
 # 分块上传（大文件，支持断点续传）
 # =====================================================================
+
 
 @router.post("/init")
 async def api_init_upload(req: InitUploadRequest):
@@ -100,16 +97,19 @@ async def api_init_upload(req: InitUploadRequest):
     try:
         total_chunks = (req.file_size + CHUNK_SIZE - 1) // CHUNK_SIZE
         result = init_chunk_upload(
-            req.path, req.file_name, req.file_size,
-            total_chunks, req.file_hash,
+            req.path,
+            req.file_name,
+            req.file_size,
+            total_chunks,
+            req.file_hash,
         )
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="上传请求无效")
+        raise HTTPException(status_code=400, detail="上传请求无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"初始化失败: {str(e)}") from e
 
 
 @router.put("/chunk/{upload_id}/{chunk_index}")
@@ -129,11 +129,11 @@ async def api_upload_chunk(
         result = upload_chunk(upload_id, chunk_index, data)
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="上传请求无效")
+        raise HTTPException(status_code=400, detail="上传请求无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"分块上传失败: {str(e)}") from e
 
 
 @router.post("/complete")
@@ -145,13 +145,13 @@ async def api_complete_upload(req: CompleteUploadRequest):
         result = complete_chunk_upload(req.upload_id)
         return {"success": True, "data": result}
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效") from e
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="上传请求无效")
+        raise HTTPException(status_code=400, detail="上传请求无效") from e
     except OSError as e:
-        raise HTTPException(status_code=400, detail="上传请求无效")
+        raise HTTPException(status_code=400, detail="上传请求无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"合并失败: {str(e)}") from e
 
 
 @router.post("/cancel")
@@ -163,11 +163,11 @@ async def api_cancel_upload(req: CancelUploadRequest):
         result = cancel_chunk_upload(req.upload_id)
         return {"success": True, "data": result}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="非法的上传会话 ID")
+        raise HTTPException(status_code=400, detail="非法的上传会话 ID") from e
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="上传会话不存在")
-    except Exception:
-        raise HTTPException(status_code=500, detail="取消上传失败")
+        raise HTTPException(status_code=404, detail="上传会话不存在") from e
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="取消上传失败") from exc
 
 
 @router.get("/status/{upload_id}")
@@ -179,8 +179,8 @@ async def api_upload_status(upload_id: str):
         result = get_upload_status(upload_id)
         return {"success": True, "data": result}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="非法的上传会话 ID")
+        raise HTTPException(status_code=400, detail="非法的上传会话 ID") from e
     except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail="文件不存在或路径无效")
+        raise HTTPException(status_code=404, detail="文件不存在或路径无效") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail="服务器内部错误")
+        raise HTTPException(status_code=500, detail="服务器内部错误") from e
