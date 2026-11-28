@@ -29,15 +29,17 @@ def _safe_path(requested_path: str) -> Path:
     :return: 安全的绝对路径
     :raises ValueError: 路径不合法时抛出
     """
+    base = BASE_DIR.resolve()
     if not requested_path:
-        return BASE_DIR
+        return base
     # 规范化路径
     clean = Path(requested_path).as_posix()
-    # 拒绝包含 .. 的路径
-    parts = [p for p in clean.split("/") if p and p != ".."]
-    safe = BASE_DIR.joinpath(*parts).resolve()
-    # 确保不会逃逸出根目录
-    if not str(safe).startswith(str(BASE_DIR.resolve())):
+    # 丢弃空段、'.' 段与 '..' 段，避免目录遍历
+    parts = [p for p in clean.split("/") if p and p not in (".", "..")]
+    safe = base.joinpath(*parts).resolve()
+    # 必须用路径语义判断包含关系：字符串 startswith 会把 BASE_DIR 的
+    # 同前缀兄弟目录（或指向它们的符号链接）误判为仍在根目录内 (CWE-22)
+    if not safe.is_relative_to(base):
         raise ValueError("路径不合法: 不允许访问根目录之外的内容")
     return safe
 
@@ -61,6 +63,10 @@ def _validate_filename(name: str) -> str:
     for ch in illegal:
         if ch in name:
             raise ValueError(f"文件名包含非法字符: '{ch}'")
+    # '/' 与 '\\' 不在上面的非法字符集合中，但它们是路径分隔符；
+    # 放行会让 simple_upload / init_chunk_upload / rename_path 把文件写到根目录之外 (CWE-22)
+    if "/" in name or "\\" in name:
+        raise ValueError("文件名不能包含路径分隔符")
     if name in (".", ".."):
         raise ValueError("文件名不能为 '.' 或 '..'")
     return name
@@ -76,7 +82,10 @@ def _file_stat(path: Path) -> dict[str, Any]:
     stat = path.stat()
     return {
         "name": path.name,
-        "path": str(path.relative_to(BASE_DIR).as_posix()) if path != BASE_DIR else "/",
+        # _safe_path 返回的是 resolve() 后的绝对路径，而 BASE_DIR 可能是
+        # 相对路径（默认 ./data）；两边必须都 resolve，否则 relative_to 抛 ValueError
+        "path": str(path.resolve().relative_to(BASE_DIR.resolve()).as_posix())
+        if path.resolve() != BASE_DIR.resolve() else "/",
         "is_dir": path.is_dir(),
         "size": stat.st_size if path.is_file() else 0,
         "modified": stat.st_mtime,
